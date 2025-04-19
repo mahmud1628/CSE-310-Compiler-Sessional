@@ -20,7 +20,7 @@ class SymbolInfo {
 
         string getName() const {
             return name;
-        };
+        }
 
         string getType() const {
             return type;

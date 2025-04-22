@@ -98,7 +98,23 @@ class ScopeTable {
         }
 
         bool deleteSymbol(string& name) {
-            
+            SymbolInfo * toBeDeleted = lookup(name);
+            if(toBeDeleted == nullptr) {
+                return false; // symbol not found
+            }
+            int index = getBucketIndex(name);
+            SymbolInfo * current = hash_table[index];
+            if(current == toBeDeleted) {
+                hash_table[index] = current->getNext();
+            } else {
+                while(current->getNext() != toBeDeleted) {
+                    current = current->getNext();
+                }
+                current->setNext(toBeDeleted->getNext());
+            }
+            toBeDeleted->setNext(nullptr); // to avoid recursive deletion
+            delete toBeDeleted;
+            return true;
         }
 
         void print() {

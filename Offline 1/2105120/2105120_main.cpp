@@ -141,5 +141,15 @@ int main() {
                 symbolTable.enterScope(true);
             }
         }
+
+        else if(command == "E") {
+            string extra;
+            if(ss >> extra) {
+                cout << "\tNumber of parameters mismatch for the command S" << endl;
+                continue;
+            } else {
+                symbolTable.exitScope(true);
+            }
+        }
     }
 }

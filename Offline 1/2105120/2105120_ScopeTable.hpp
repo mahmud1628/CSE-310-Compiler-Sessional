@@ -14,9 +14,10 @@ class ScopeTable {
         int num_children; // number of children
         SymbolInfo ** hash_table;
         ScopeTable * parent_scope;
+        bool destructor_verbose;
     
     public:
-        ScopeTable(int id, int num_buckets, ScopeTable * parent_scope = nullptr) : id(id), num_buckets(num_buckets), num_children(0), parent_scope(parent_scope) {
+        ScopeTable(int id, int num_buckets, ScopeTable * parent_scope = nullptr, bool destructor_verbose = false) : id(id), num_buckets(num_buckets), num_children(0), parent_scope(parent_scope), destructor_verbose(destructor_verbose) {
             hash_table = new SymbolInfo*[num_buckets];
             for (int i = 0; i < num_buckets; i++) {
                 hash_table[i] = nullptr;
@@ -26,6 +27,9 @@ class ScopeTable {
         ~ScopeTable() {
             for (int i = 0; i < num_buckets; i++) {
                 delete hash_table[i];
+            }
+            if(destructor_verbose) {
+                cout << "\tScopeTable# " << id << " removed" << endl;
             }
             delete[] hash_table;
             if(parent_scope != nullptr) {

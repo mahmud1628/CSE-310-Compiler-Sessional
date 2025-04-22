@@ -26,15 +26,18 @@ class SymbolTable {
         }
 
         void enterScope(bool verbose = false) {
-            ScopeTable * newScope = new ScopeTable(++num_scopes, num_buckets, currentScope);
+            ScopeTable * newScope = new ScopeTable(++num_scopes, num_buckets, currentScope, verbose);
             currentScope = newScope;
             if(verbose) {
                 cout << "\tScopeTable# " << currentScope->getId() << " created" << endl;
             }
         }
 
-        void exitScope() {
+        void exitScope(bool verbose = false) {
             if(currentScope->getParentScope() == nullptr) {
+                if(verbose) {
+                    cout << "\tScopeTable# " << currentScope->getId() << " cannot be exited" << endl;
+                }
                 return; // cannot exit the global scope
             }
             ScopeTable * parentScope = currentScope->getParentScope();

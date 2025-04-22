@@ -92,5 +92,21 @@ int main() {
                 continue;
             }
         }
+
+        else if(command == "D") {
+            string name;
+            if(ss >> name) {
+                string extra;
+                if(ss >> extra) {
+                    cout << "\tNumber of parameters mismatch for the command D" << endl;
+                    continue;
+                } else {
+                    symbolTable.remove(name, true);
+                }
+            } else {
+                cout << "\tNumber of parameters mismatch for the command D" << endl;
+                continue;
+            }
+        }
     }
 }

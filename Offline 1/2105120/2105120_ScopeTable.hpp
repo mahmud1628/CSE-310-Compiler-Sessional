@@ -111,20 +111,29 @@ class ScopeTable {
             return nullptr;
         }
 
-        bool deleteSymbol(string& name) {
+        bool deleteSymbol(string& name, bool verbose = false) {
             SymbolInfo * toBeDeleted = lookup(name);
             if(toBeDeleted == nullptr) {
+                if(verbose) {
+                    cout << "\tNot found in the current ScopeTable" << endl;
+                }
                 return false; // symbol not found
             }
             int index = getBucketIndex(name);
+            int position = 1;
             SymbolInfo * current = hash_table[index];
             if(current == toBeDeleted) {
                 hash_table[index] = current->getNext();
             } else {
                 while(current->getNext() != toBeDeleted) {
+                    position++;
                     current = current->getNext();
                 }
+                position++;
                 current->setNext(toBeDeleted->getNext());
+            }
+            if(verbose) {
+                cout << "\tDeleted '" << name << "'from ScopeTable# " << id << " at position " << index + 1 << ", " << position << endl;
             }
             toBeDeleted->setNext(nullptr); // to avoid recursive deletion
             delete toBeDeleted;

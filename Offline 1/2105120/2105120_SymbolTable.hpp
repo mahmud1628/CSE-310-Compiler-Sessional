@@ -46,8 +46,8 @@ class SymbolTable {
             return inserted;
         }
 
-        bool remove(string name) {
-            bool removed = currentScope->deleteSymbol(name);
+        bool remove(string name, bool verbose = false) {
+            bool removed = currentScope->deleteSymbol(name, verbose);
             return removed;
         }
 

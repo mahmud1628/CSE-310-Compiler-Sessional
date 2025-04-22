@@ -26,6 +26,9 @@ class ScopeTable {
                 delete hash_table[i];
             }
             delete[] hash_table;
+            if(parent_scope != nullptr) {
+                delete parent_scope; // delete the parent scope if it exists
+            }
         }
 
         int getId() const {

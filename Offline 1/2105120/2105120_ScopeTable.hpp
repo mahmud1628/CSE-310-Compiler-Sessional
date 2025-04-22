@@ -148,7 +148,7 @@ class ScopeTable {
             string tabs(numberOfTabs, '\t');
             cout << tabs << "ScopeTable# " << id << endl;
             for(int i = 0; i < num_buckets; i++) {
-                cout << tabs << i << "--> ";
+                cout << tabs << i + 1 << "--> ";
                 SymbolInfo * current = hash_table[i];
                 while(current != nullptr) {
                     cout << *current << " ";

@@ -31,6 +31,39 @@ class SymbolTable {
                 cout << "New ScopeTable with id " << newScope->getId() << " created." << endl;
             }
 
+            void exitScope() {
+                if(currentScope->getParentScope() == nullptr) {
+                    return; // cannot exit the global scope
+                }
+                ScopeTable * parentScope = currentScope->getParentScope();
+                currentScope->setParentScope(nullptr); // avoid recursive deletion
+                delete currentScope; // delete the current scope
+                currentScope = parentScope; // move to the parent scope
+            }
+
+            bool insert(string name, string type) {
+                bool inserted = currentScope->insert(name, type);
+                return inserted;
+            }
+
+            bool remove(string name) {
+                bool removed = currentScope->deleteSymbol(name);
+                return removed;
+            }
+
+            SymbolInfo * lookup(string name) {
+                ScopeTable * scope = currentScope;
+                SymbolInfo * symbol;
+                while(scope != nullptr) {
+                    symbol = scope->lookup(name);
+                    if(symbol != nullptr) {
+                        return symbol;
+                    }
+                    scope = scope->getParentScope();
+                }
+                return nullptr; // not found
+            }
+
 };
 
 

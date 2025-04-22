@@ -45,7 +45,8 @@ int main() {
                         cout << "\tReturn type missing for type FUNCTION" << endl;
                         continue;
                     }
-                } else if(type == "STRUCT") {
+                } else if(type == "STRUCT" || type == "UNION") {
+                    string t = type;
                     type = type + ",{";
                     string dataType;
                     while(ss >> dataType) {
@@ -53,7 +54,7 @@ int main() {
                         if(ss >> member) {
                             type = type + "(" + dataType + "," + member + "),";
                         } else {
-                            cout << "\tMember name missing for type STRUCT" << endl;
+                            cout << "\tMember name missing for type " << t << endl;
                             continue;
                         }
                     }
@@ -61,8 +62,6 @@ int main() {
                         type.pop_back(); // Remove the last comma
                     }
                     type = type + "}";
-                } else if(type == "UNION") {
-
                 } else {
                     string extra;
                     if(ss >> extra) {

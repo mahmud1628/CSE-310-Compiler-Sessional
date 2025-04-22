@@ -151,7 +151,7 @@ class ScopeTable {
                 cout << tabs << i << "--> ";
                 SymbolInfo * current = hash_table[i];
                 while(current != nullptr) {
-                    cout << current << " ";
+                    cout << *current << " ";
                     current = current->getNext();
                 }
                 cout << endl;

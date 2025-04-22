@@ -45,7 +45,7 @@ int main() {
                         cout << "\tReturn type missing for type FUNCTION" << endl;
                         continue;
                     }
-                } else if(type == "STRCUT") {
+                } else if(type == "STRUCT") {
                     type = type + ",{";
                     string dataType;
                     while(ss >> dataType) {

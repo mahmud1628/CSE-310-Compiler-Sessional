@@ -43,7 +43,7 @@ class SymbolInfo {
         }
 
         friend ostream& operator<<(ostream& os, const SymbolInfo& symbolInfo) {
-            os << "Name: " << symbolInfo.name << ", Type: " << symbolInfo.type;
+            os << "<" << symbolInfo.name << "," << symbolInfo.type << ">";
             return os;
         }
 };

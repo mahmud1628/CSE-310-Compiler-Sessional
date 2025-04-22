@@ -1,7 +1,9 @@
 #ifndef SCOPETABLE_HPP
 #define SCOPETABLE_HPP
 #include <string>
+#include <iostream>
 #include "2105120_SymbolInfo.hpp"
+#include "2105120_hash.hpp"
 using namespace std;
 
 
@@ -59,12 +61,40 @@ class ScopeTable {
             num_children--;
         }
 
-        bool insert(string& name, string& type) {
+        int getBucketIndex(string & name) {
+            unsigned int hash = Hash::SDBMHash(name, num_buckets);
+            return hash % num_buckets;
+        }
 
+        bool insert(string& name, string& type) {
+            SymbolInfo * exists = lookup(name);
+            if(exists != nullptr) {
+                return false; // symbol already exists
+            }
+            int index = getBucketIndex(name);
+            SymbolInfo * new_symbol = new SymbolInfo(name, type);
+            if(hash_table[index] == nullptr) {
+                hash_table[index] = new_symbol;
+            } else {
+                SymbolInfo * current = hash_table[index];
+                while(current->getNext() != nullptr) {
+                    current = current->getNext();
+                }
+                current->setNext(new_symbol);
+            }
+            return true;
         }
 
         SymbolInfo * lookup(string& name) {
-
+            int index = getBucketIndex(name);
+            SymbolInfo * current = hash_table[index];
+            while(current != nullptr) {
+                if(current->getName() == name) {
+                    return current;
+                }
+                current = current->getNext();
+            }
+            return nullptr;
         }
 
         bool deleteSymbol(string& name) {

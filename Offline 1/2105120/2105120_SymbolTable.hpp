@@ -14,10 +14,10 @@ class SymbolTable {
         int num_scopes;
     
     public:
-        SymbolTable(int num_buckets) : num_buckets(num_buckets) {
+        SymbolTable(int num_buckets, bool verbose = false) : num_buckets(num_buckets) {
             num_scopes = 0;
             currentScope = nullptr;
-            enterScope();
+            enterScope(verbose);
         }
 
         ~SymbolTable() {

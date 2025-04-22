@@ -11,7 +11,7 @@ int main() {
     int num_buckets;
     cin >> num_buckets;
     cin.ignore(); // Ignore the newline character after the number of buckets
-    SymbolTable symbolTable(num_buckets);
+    SymbolTable * symbolTable = new SymbolTable(num_buckets, true);
     int commandCount = 0;
     string line, command;
 
@@ -70,7 +70,7 @@ int main() {
                         continue;
                     }
                 }
-                symbolTable.insert(name, type, true);
+                symbolTable->insert(name, type, true);
             } else {
                 cout << "\tNumber of parameters mismatch for the command I" << endl;
                 continue;
@@ -85,7 +85,7 @@ int main() {
                     cout << "\tNumber of parameters mismatch for the command L" << endl;
                     continue;
                 } else {
-                    symbolTable.lookup(name, true);
+                    symbolTable->lookup(name, true);
                 }
             } else {
                 cout << "\tNumber of parameters mismatch for the command L" << endl;
@@ -101,7 +101,7 @@ int main() {
                     cout << "\tNumber of parameters mismatch for the command D" << endl;
                     continue;
                 } else {
-                    symbolTable.remove(name, true);
+                    symbolTable->remove(name, true);
                 }
             } else {
                 cout << "\tNumber of parameters mismatch for the command D" << endl;
@@ -118,9 +118,9 @@ int main() {
                     continue;
                 } else {
                     if(printType == "C") {
-                        symbolTable.printCurrentScope(true);
+                        symbolTable->printCurrentScope(true);
                     } else if(printType == "A") {
-                        symbolTable.printAllScopes(true);
+                        symbolTable->printAllScopes(true);
                     } else {
                         cout << "\tInvalid command for P" << endl;
                         continue;
@@ -138,7 +138,7 @@ int main() {
                 cout << "\tNumber of parameters mismatch for the command S" << endl;
                 continue;
             } else {
-                symbolTable.enterScope(true);
+                symbolTable->enterScope(true);
             }
         }
 
@@ -148,8 +148,24 @@ int main() {
                 cout << "\tNumber of parameters mismatch for the command S" << endl;
                 continue;
             } else {
-                symbolTable.exitScope(true);
+                symbolTable->exitScope(true);
             }
+        } 
+
+        else if(command == "Q") {
+            string extra;
+            if(ss >> extra) {
+                cout << "\tNumber of parameters mismatch for the command Q" << endl;
+                continue;
+            } else {
+                delete symbolTable;
+                break;
+            }
+        } 
+
+        else {
+            cout << "\tInvalid command" << endl;
+            continue;
         }
     }
 }

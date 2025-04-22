@@ -41,8 +41,8 @@ class SymbolTable {
             currentScope = parentScope; // move to the parent scope
         }
 
-        bool insert(string name, string type) {
-            bool inserted = currentScope->insert(name, type);
+        bool insert(string name, string type, bool verbose = false) {
+            bool inserted = currentScope->insert(name, type, verbose);
             return inserted;
         }
 

@@ -66,12 +66,16 @@ class ScopeTable {
             return hash % num_buckets;
         }
 
-        bool insert(string& name, string& type) {
+        bool insert(string& name, string& type, bool verbose = false) {
             SymbolInfo * exists = lookup(name);
             if(exists != nullptr) {
+                if(verbose) {
+                    cout << "\t'" << name << "' already exists in the current ScopeTable" << endl;
+                }
                 return false; // symbol already exists
             }
             int index = getBucketIndex(name);
+            int position = 1;
             SymbolInfo * new_symbol = new SymbolInfo(name, type);
             if(hash_table[index] == nullptr) {
                 hash_table[index] = new_symbol;
@@ -79,8 +83,13 @@ class ScopeTable {
                 SymbolInfo * current = hash_table[index];
                 while(current->getNext() != nullptr) {
                     current = current->getNext();
+                    position++;
                 }
+                position++;
                 current->setNext(new_symbol);
+            }
+            if(verbose) {
+                cout << "\tInserted in ScopeTable# " << id << " at position " << index + 1 << ", " << position << endl;
             }
             return true;
         }

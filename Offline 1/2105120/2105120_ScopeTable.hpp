@@ -117,10 +117,11 @@ class ScopeTable {
             return true;
         }
 
-        void print() {
-            cout << "ScopeTable# " << id << endl;
+        void print(int numberOfTabs = 0) {
+            string tabs(numberOfTabs, '\t');
+            cout << tabs << "ScopeTable# " << id << endl;
             for(int i = 0; i < num_buckets; i++) {
-                cout << i << "--> ";
+                cout << tabs << i << "--> ";
                 SymbolInfo * current = hash_table[i];
                 while(current != nullptr) {
                     cout << current << " ";

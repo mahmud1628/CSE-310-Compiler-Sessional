@@ -137,7 +137,7 @@ class ScopeTable {
                 current->setNext(toBeDeleted->getNext());
             }
             if(verbose) {
-                cout << "\tDeleted '" << name << "'from ScopeTable# " << id << " at position " << index + 1 << ", " << position << endl;
+                cout << "\tDeleted '" << name << "' from ScopeTable# " << id << " at position " << index + 1 << ", " << position << endl;
             }
             toBeDeleted->setNext(nullptr); // to avoid recursive deletion
             delete toBeDeleted;

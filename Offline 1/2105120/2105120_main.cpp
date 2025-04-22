@@ -108,5 +108,28 @@ int main() {
                 continue;
             }
         }
+
+        else if(command == "P") {
+            string printType;
+            if(ss >> printType) {
+                string extra;
+                if(ss >> extra) {
+                    cout << "\tNumber of parameters mismatch for the command P" << endl;
+                    continue;
+                } else {
+                    if(printType == "C") {
+                        symbolTable.printCurrentScope(true);
+                    } else if(printType == "A") {
+                        symbolTable.printAllScopes(true);
+                    } else {
+                        cout << "\tInvalid command for P" << endl;
+                        continue;
+                    }
+                }
+            } else {
+                cout << "\tNumber of parameters mismatch for the command P" << endl;
+                continue;
+            }
+        }
     }
 }

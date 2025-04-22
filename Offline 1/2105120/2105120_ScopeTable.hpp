@@ -94,13 +94,18 @@ class ScopeTable {
             return true;
         }
 
-        SymbolInfo * lookup(string& name) {
+        SymbolInfo * lookup(string& name, bool verbose = false) {
             int index = getBucketIndex(name);
+            int position = 1;
             SymbolInfo * current = hash_table[index];
             while(current != nullptr) {
                 if(current->getName() == name) {
+                    if(verbose) {
+                        cout << "\t'" << name << "' found in ScopeTable# " << id << " at position " << index + 1 << ", " << position << endl;
+                    }
                     return current;
                 }
+                position++;
                 current = current->getNext();
             }
             return nullptr;

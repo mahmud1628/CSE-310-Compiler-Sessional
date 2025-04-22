@@ -51,15 +51,18 @@ class SymbolTable {
             return removed;
         }
 
-        SymbolInfo * lookup(string name) {
+        SymbolInfo * lookup(string name, bool verbose = false) {
             ScopeTable * scope = currentScope;
             SymbolInfo * symbol;
             while(scope != nullptr) {
-                symbol = scope->lookup(name);
+                symbol = scope->lookup(name, verbose);
                 if(symbol != nullptr) {
                     return symbol;
                 }
                 scope = scope->getParentScope();
+            }
+            if(verbose) {
+                cout << "\t'" << name << "' not found in any of the ScopeTables" << endl;
             }
             return nullptr; // not found
         }

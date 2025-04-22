@@ -70,9 +70,25 @@ int main() {
                         continue;
                     }
                 }
-                symbolTable.insert(name, type);
+                symbolTable.insert(name, type, true);
             } else {
                 cout << "\tNumber of parameters mismatch for the command I" << endl;
+                continue;
+            }
+        }
+
+        else if(command == "L") {
+            string name;
+            if(ss >> name) {
+                string extra;
+                if(ss >> extra) {
+                    cout << "\tNumber of parameters mismatch for the command L" << endl;
+                    continue;
+                } else {
+                    symbolTable.lookup(name, true);
+                }
+            } else {
+                cout << "\tNumber of parameters mismatch for the command L" << endl;
                 continue;
             }
         }

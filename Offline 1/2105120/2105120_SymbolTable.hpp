@@ -25,10 +25,12 @@ class SymbolTable {
             // The destructor of ScopeTable will take care of deleting its parent scopes
         }
 
-        void enterScope() {
+        void enterScope(bool verbose = false) {
             ScopeTable * newScope = new ScopeTable(++num_scopes, num_buckets, currentScope);
             currentScope = newScope;
-            cout << "New ScopeTable with id " << newScope->getId() << " created." << endl;
+            if(verbose) {
+                cout << "\tScopeTable# " << currentScope->getId() << " created" << endl;
+            }
         }
 
         void exitScope() {

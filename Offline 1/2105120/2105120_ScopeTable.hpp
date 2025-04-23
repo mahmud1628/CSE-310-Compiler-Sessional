@@ -2,6 +2,7 @@
 #define SCOPETABLE_HPP
 #include <string>
 #include <iostream>
+#include <functional>
 #include "2105120_SymbolInfo.hpp"
 #include "2105120_hash.hpp"
 using namespace std;
@@ -15,9 +16,13 @@ class ScopeTable {
         SymbolInfo ** hash_table;
         ScopeTable * parent_scope;
         bool destructor_verbose;
+        function<unsigned int(string, int)> hash_function;
     
     public:
-        ScopeTable(int id, int num_buckets, ScopeTable * parent_scope = nullptr, bool destructor_verbose = false) : id(id), num_buckets(num_buckets), num_children(0), parent_scope(parent_scope), destructor_verbose(destructor_verbose) {
+        ScopeTable(int id, int num_buckets, ScopeTable * parent_scope = nullptr,string hashName = "sdbm", bool destructor_verbose = false) : id(id), num_buckets(num_buckets), num_children(0), parent_scope(parent_scope), destructor_verbose(destructor_verbose) {
+            if(hashName == "sdbm") {
+                hash_function = Hash::SDBMHash; 
+            }
             hash_table = new SymbolInfo*[num_buckets];
             for (int i = 0; i < num_buckets; i++) {
                 hash_table[i] = nullptr;
@@ -66,7 +71,7 @@ class ScopeTable {
         }
 
         int getBucketIndex(string & name) {
-            unsigned int hash = Hash::SDBMHash(name, num_buckets);
+            unsigned int hash = hash_function(name, num_buckets);
             return hash % num_buckets;
         }
 

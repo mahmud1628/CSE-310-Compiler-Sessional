@@ -12,9 +12,10 @@ class SymbolTable {
         ScopeTable * currentScope;
         int num_buckets;
         int num_scopes;
+        string hashName;
     
     public:
-        SymbolTable(int num_buckets, bool verbose = false) : num_buckets(num_buckets) {
+        SymbolTable(int num_buckets, string hashName = "sdbm" , bool verbose = false) : num_buckets(num_buckets), hashName(hashName) {
             num_scopes = 0;
             currentScope = nullptr;
             enterScope(verbose);
@@ -26,7 +27,7 @@ class SymbolTable {
         }
 
         void enterScope(bool verbose = false) {
-            ScopeTable * newScope = new ScopeTable(++num_scopes, num_buckets, currentScope, verbose);
+            ScopeTable * newScope = new ScopeTable(++num_scopes, num_buckets, currentScope, hashName , verbose);
             currentScope = newScope;
             if(verbose) {
                 cout << "\tScopeTable# " << currentScope->getId() << " created" << endl;

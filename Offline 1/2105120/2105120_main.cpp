@@ -7,11 +7,21 @@
 using namespace std;
 
 
-int main() {
+int main(int argc, char *argv[]) {
+    if(argc >= 3) {
+        freopen(argv[1], "r",stdin);
+        freopen(argv[2], "w",stdout);
+    }
     int num_buckets;
     cin >> num_buckets;
+    string hashName;
+    if(argc == 4) {
+        hashName = argv[3];
+    } else {
+        hashName = "sdbm";
+    }
     cin.ignore(); // Ignore the newline character after the number of buckets
-    SymbolTable * symbolTable = new SymbolTable(num_buckets, true);
+    SymbolTable * symbolTable = new SymbolTable(num_buckets, hashName, true);
     int commandCount = 0;
     string line, command;
 

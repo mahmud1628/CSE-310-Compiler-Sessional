@@ -24,6 +24,8 @@ class ScopeTable {
                 hash_function = Hash::SDBMHash; 
             } else if(hashName == "bkdr") {
                 hash_function = Hash::BKDRHash;
+            } else if(hashName == "djb") {
+                hash_function = Hash::DJBHash;
             } else {
                 //Invalid hash function name. Using default SDBM hash
                 hash_function = Hash::SDBMHash;

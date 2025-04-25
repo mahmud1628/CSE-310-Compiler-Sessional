@@ -6,6 +6,15 @@
 
 using namespace std;
 
+void print_report(SymbolTable * symbolTable) {
+    int num_buckets = symbolTable->getNumBuckets();
+    int num_scopes = symbolTable->getNumScopes();
+    int number_of_collisions = symbolTable->getNumberOfCollisions();
+    cout << "\tTotal number of ScopeTables : " << num_scopes << endl;
+    cout << "\tTotal number of Collisions : " << number_of_collisions << endl;
+    cout << "\tRatio : " << 1.0 * number_of_collisions / (num_scopes * num_buckets) << endl;
+}
+
 
 int main(int argc, char *argv[]) {
     if(argc >= 3) {
@@ -181,30 +190,23 @@ int main(int argc, char *argv[]) {
                 // cout << "\tNumber of parameters mismatch for the command Q" << endl;
                 continue;
             } else {
-                // generate report for sdbm hash function
                 cout << "Report for SDBM Hash Function : " << endl;
-                cout << "\tTotal number of ScopeTables : " << symbolTableSDBM->getNumScopes() << endl;
-                cout << "\tTotal number of Collisions : " << symbolTableSDBM->getNumberOfCollisions() << endl;
-                cout << "\tRatio : " << 1.0 * symbolTableSDBM->getNumberOfCollisions() / (symbolTableSDBM->getNumScopes() * symbolTableSDBM->getNumBuckets()) << endl;
+                print_report(symbolTableSDBM);
                 delete symbolTableSDBM;
                 // generate report for bkdr hash function
                 cout << "Report for BKDR Hash Function : " << "(Hash function collecred from https://www.partow.net/programming/hashfunctions/#BKDRHashFunction)" << endl;
-                cout << "\tTotal number of ScopeTables : " << symbolTableBKDR->getNumScopes() << endl;
-                cout << "\tTotal number of Collisions : " << symbolTableBKDR->getNumberOfCollisions() << endl;
-                cout << "\tRatio : " << 1.0 * symbolTableBKDR->getNumberOfCollisions() / (symbolTableBKDR->getNumScopes() * symbolTableBKDR->getNumBuckets()) << endl;
+                print_report(symbolTableBKDR);
                 delete symbolTableBKDR;
                 // generate report for djb hash function
                 cout << "Report for DJB Hash Function : " << "(Hash function collected from https://www.partow.net/programming/hashfunctions/#DJBHashFunction)" << endl;
-                cout << "\tTotal number of ScopeTables : " << symbolTableDJB->getNumScopes() << endl;
-                cout << "\tTotal number of Collisions : " << symbolTableDJB->getNumberOfCollisions() << endl;
-                cout << "\tRatio : " << 1.0 * symbolTableDJB->getNumberOfCollisions() / (symbolTableDJB->getNumScopes() * symbolTableDJB->getNumBuckets()) << endl;
+                print_report(symbolTableDJB);
                 delete symbolTableDJB;
                 break;
             }
         } 
 
         else {
-            cout << "\tInvalid command" << endl;
+            // cout << "\tInvalid command" << endl;
             continue;
         }
     }

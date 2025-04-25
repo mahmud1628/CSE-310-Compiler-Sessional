@@ -1,0 +1,12 @@
+Report for SDBM Hash Function : 
+	Total number of ScopeTables : 6
+	Total number of Collisions : 16
+	Ratio : 0.156863
+Report for BKDR Hash Function : (Hash function collecred from https://www.partow.net/programming/hashfunctions/#BKDRHashFunction)
+	Total number of ScopeTables : 6
+	Total number of Collisions : 12
+	Ratio : 0.117647
+Report for DJB Hash Function : (Hash function collected from https://www.partow.net/programming/hashfunctions/#DJBHashFunction)
+	Total number of ScopeTables : 6
+	Total number of Collisions : 12
+	Ratio : 0.117647

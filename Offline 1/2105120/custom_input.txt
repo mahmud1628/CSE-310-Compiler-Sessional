@@ -1,0 +1,110 @@
+17
+I var1 VAR
+I var2 VAR
+I var3 VAR
+I var4 VAR
+I var5 VAR
+I var6 VAR
+I var7 VAR
+I var8 VAR
+I var9 VAR
+I var10 VAR
+I func1 FUNCTION INT INT
+I func2 FUNCTION INT INT FLOAT
+I func3 FUNCTION STRING INT
+I car STRUCT INT doors BOOL is_electric STRING brand
+I truck STRUCT INT wheels STRING model
+I bike STRUCT STRING type INT gear_count
+S
+I apple FUNCTION STRING STRING STRING
+I orange FUNCTION STRING STRING STRING
+I mango FUNCTION STRING STRING STRING
+I banana FUNCTION STRING STRING STRING
+I kiwi FUNCTION STRING STRING STRING
+I melon FUNCTION STRING STRING STRING
+I berry FUNCTION STRING STRING STRING
+I strawberry FUNCTION STRING STRING STRING
+S
+I raspberry FUNCTION STRING STRING STRING
+I blueberry FUNCTION STRING STRING STRING
+I pear FUNCTION STRING STRING STRING
+I apple_var VAR
+I orange_var VAR
+I mango_var VAR
+I banana_var VAR
+I kiwi_var VAR
+I melon_var VAR
+S
+I berry_var VAR
+I strawberry_var VAR
+I raspberry_var VAR
+I blueberry_var VAR
+I pear_var VAR
+S
+I var11 VAR
+I var12 VAR
+I var13 VAR
+I var14 VAR
+I var15 VAR
+I var16 VAR
+I var17 VAR
+I var18 VAR
+I var19 VAR
+I var20 VAR
+I func4 FUNCTION INT
+S
+I var21 VAR
+I var22 VAR
+I var23 VAR
+I var24 VAR
+I var25 VAR
+I var26 VAR
+I var27 VAR
+I var28 VAR
+I var29 VAR
+I var30 VAR
+I var31 VAR
+I var32 VAR
+I var33 VAR
+I var34 VAR
+I var35 VAR
+I var36 VAR
+I var37 VAR
+I var38 VAR
+I var39 VAR
+I var40 VAR
+L var1
+L var2
+L func1
+L func2
+L apple
+L banana
+L car
+L truck
+L x
+L y
+L z
+L a
+L b
+L c
+L m
+L n
+L o
+L p
+L q
+E
+L x1
+L y1
+L z1
+L a1
+L b1
+L c1
+L d1
+L e1
+L f1
+L g1
+L h1
+L i1
+L j1
+L k1
+Q

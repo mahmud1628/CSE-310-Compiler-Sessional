@@ -12,11 +12,13 @@ class SymbolTable {
         ScopeTable * currentScope;
         int num_buckets;
         int num_scopes;
+        int numberOfCollisions;
         string hashName;
     
     public:
         SymbolTable(int num_buckets, string hashName = "sdbm" , bool verbose = false) : num_buckets(num_buckets), hashName(hashName) {
             num_scopes = 0;
+            numberOfCollisions = 0;
             currentScope = nullptr;
             enterScope(verbose);
         }
@@ -41,6 +43,7 @@ class SymbolTable {
                 }
                 return; // cannot exit the global scope
             }
+            numberOfCollisions += currentScope->getNumberOfCollisions();
             ScopeTable * parentScope = currentScope->getParentScope();
             currentScope->setParentScope(nullptr); // avoid recursive deletion
             delete currentScope; // delete the current scope
@@ -88,6 +91,27 @@ class SymbolTable {
                 scope = scope->getParentScope();
             }
         }
+
+        int getNumberOfCollisions() {
+            calculateCollisions();
+            return numberOfCollisions;
+        }
+
+        void calculateCollisions() {
+            ScopeTable * scope = currentScope;
+            while(scope != nullptr) {
+                numberOfCollisions += scope->getNumberOfCollisions();
+                scope = scope->getParentScope();
+            }
+        }
+
+        int getNumScopes() {
+            return num_scopes;
+        }
+        int getNumBuckets() {
+            return num_buckets;
+        }
+        
 
 };
 

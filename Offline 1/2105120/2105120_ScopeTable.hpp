@@ -17,6 +17,7 @@ class ScopeTable {
         ScopeTable * parent_scope;
         bool destructor_verbose;
         function<unsigned int(string, int)> hash_function;
+        int numberOfCollisions; // number of collisions
     
     public:
         ScopeTable(int id, int num_buckets, ScopeTable * parent_scope = nullptr,string hashName = "sdbm", bool destructor_verbose = false) : id(id), num_buckets(num_buckets), num_children(0), parent_scope(parent_scope), destructor_verbose(destructor_verbose) {
@@ -34,6 +35,7 @@ class ScopeTable {
             for (int i = 0; i < num_buckets; i++) {
                 hash_table[i] = nullptr;
             }
+            numberOfCollisions = 0;
         }
 
         ~ScopeTable() {
@@ -77,6 +79,10 @@ class ScopeTable {
             num_children--;
         }
 
+        int getNumberOfCollisions() const {
+            return numberOfCollisions;
+        }
+
         int getBucketIndex(string & name) {
             unsigned int hash = hash_function(name, num_buckets);
             return hash % num_buckets;
@@ -102,6 +108,7 @@ class ScopeTable {
                     position++;
                 }
                 position++;
+                numberOfCollisions++;
                 current->setNext(new_symbol);
             }
             if(verbose) {

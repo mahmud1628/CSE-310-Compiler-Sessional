@@ -22,6 +22,11 @@ class ScopeTable {
         ScopeTable(int id, int num_buckets, ScopeTable * parent_scope = nullptr,string hashName = "sdbm", bool destructor_verbose = false) : id(id), num_buckets(num_buckets), num_children(0), parent_scope(parent_scope), destructor_verbose(destructor_verbose) {
             if(hashName == "sdbm") {
                 hash_function = Hash::SDBMHash; 
+            } else if(hashName == "bkdr") {
+                hash_function = Hash::BKDRHash;
+            } else {
+                //Invalid hash function name. Using default SDBM hash
+                hash_function = Hash::SDBMHash;
             }
             hash_table = new SymbolInfo*[num_buckets];
             for (int i = 0; i < num_buckets; i++) {

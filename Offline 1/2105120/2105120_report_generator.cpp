@@ -51,6 +51,7 @@ int main(int argc, char *argv[]) {
         if(command == "I") {
             string name, type;
             if(ss >> name >> type) {
+                bool not_to_insert = false;
                 if(type == "FUNCTION") {
                     string returnType;
                     if(ss >> returnType) {
@@ -77,6 +78,7 @@ int main(int argc, char *argv[]) {
                             type = type + "(" + dataType + "," + member + "),";
                         } else {
                             // cout << "\tMember name missing for type " << t << endl;
+                            not_to_insert = true;
                             continue;
                         }
                     }
@@ -91,9 +93,11 @@ int main(int argc, char *argv[]) {
                         continue;
                     }
                 }
-                symbolTableSDBM->insert(name, type);
-                symbolTableBKDR->insert(name, type);
-                symbolTableDJB->insert(name, type);
+                if(!not_to_insert) {
+                    symbolTableSDBM->insert(name, type);
+                    symbolTableBKDR->insert(name, type);
+                    symbolTableDJB->insert(name, type);
+                }
             } else {
                 // cout << "\tNumber of parameters mismatch for the command I" << endl;
                 continue;

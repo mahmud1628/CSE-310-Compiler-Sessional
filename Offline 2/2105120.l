@@ -1,6 +1,9 @@
 %option noyywrap
 
 %x char_const
+%x string_const
+%x comment_single_line
+%x comment_multi_line
 
 %{
 #include<stdio.h>
@@ -8,7 +11,10 @@
 #include<string.h>
 #include<string>
 
+using namespace std;
+
 int line_count=1;
+string str,cmnt;
 
 void increment_line_count(){
     line_count++;
@@ -241,7 +247,7 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
                             // Single character, followed by closing '
                             int len = strlen(yytext);
                             yytext[len-1] = '\0'; // Remove the closing '
-                            fprintf(token_file, "<CHAR_CONST,%s> ", yytext);
+                            fprintf(token_file, "<CONST_CHAR,%s> ", yytext);
                             fprintf(log_file, "Line No. %d: Token <CHAR_CONST,%s> Lexeme %s found.\n", line_count, yytext, yytext);
                             BEGIN INITIAL;
                         }
@@ -250,7 +256,7 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
                                 // Escaped character, followed by closing '
                                 int len = strlen(yytext);
                                 yytext[len-1] = '\0'; // Remove the closing '
-                                fprintf(token_file, "<CHAR_CONST,%s> ", yytext);
+                                fprintf(token_file, "<CONST_CHAR,%s> ", yytext);
                                 fprintf(log_file, "Line No. %d: Token <CHAR_CONST,%s> Lexeme %s found.\n", line_count, yytext, yytext);
                                 BEGIN INITIAL;
                            }
@@ -290,7 +296,97 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
                         // fprintf(token_file, "<CHAR_CONST,%s> ", yytext);
                         fprintf(log_file, "Error at line no. %d: Missing terminating \' character \n", line_count);
                         BEGIN INITIAL;
-                    }             
+                    }      
+
+"\""    {
+            BEGIN string_const;
+            yytext[0] = '\0';
+            str = "\"";
+        }       
+
+<string_const>{NEWLINE} |
+<string_const><<EOF>> { 
+                            str += yytext;
+                            fprintf(log_file, "Error at line no %d: Unterminated string %s\n",line_count, str.c_str());
+                            BEGIN INITIAL;        
+                      }
+
+<string_const>\\\n {
+                        // Backslash followed by newline
+                        str += yytext;
+                        line_count++;
+                    }
+
+<string_const>[\\\n] {
+                        // Backslash followed by newline
+                        str += yytext;
+                     }
+
+<string_const>\\[tafrbv0"] {
+                            // Escaped character
+                            str += yytext;
+                          }
+<string_const>\"    {
+                        str.erase(0,1);
+                        fprintf(token_file, "<STRING,%s> ", str.c_str());
+                        fprintf(log_file, "Line no %d: Token <STRING> Lexeme \"%s\" found\n", line_count, str.c_str());
+                        BEGIN INITIAL;
+                    }
+<string_const>. {
+                    str += yytext;
+                }
+"//"    {   
+            cmnt = "//";
+            BEGIN comment_single_line;
+        }
+<comment_single_line>[^\\\n]+   {
+                                    cmnt += yytext;
+                                }
+
+<comment_single_line>\\\n   {
+                                cmnt += "\\\n"; 
+                                increment_line_count();
+                            }
+
+<comment_single_line>\n {
+                            // End of comment
+                            fprintf(log_file, "Line no %d: Token <COMMENT> Lexeme %s found\n", line_count, cmnt.c_str());
+                            increment_line_count();
+                            BEGIN INITIAL;
+                        }
+
+<comment_single_line><<EOF>>    {
+                                    fprintf(log_file, "Line no %d: Token <COMMENT> Lexeme %s found\n", line_count, cmnt.c_str());
+                                    BEGIN(INITIAL);
+                                }
+
+"/*"   {
+            cmnt = "/*";
+            BEGIN comment_multi_line;
+        }
+<comment_multi_line>[^*\n]+     {
+                                    cmnt += yytext;  // any normal text
+                                }
+
+<comment_multi_line>\n  {
+                            cmnt += "\n";
+                            increment_line_count();
+                        }
+
+<comment_multi_line>"*"+[^*/\n]*    {
+                                        cmnt += yytext;  // handle stars not part of closing
+                                    }
+
+<comment_multi_line>"*/"    {
+                                cmnt += yytext;  // handle closing  
+                                fprintf(log_file, "Line no %d: Token <COMMENT> Lexeme %s found\n", line_count, cmnt.c_str());
+                                BEGIN INITIAL;
+                            }
+
+<comment_multi_line><<EOF>> {
+                                fprintf(log_file, "Line No. %d: Error - Unterminated comment %s", line_count, cmnt.c_str());
+                                BEGIN INITIAL;
+                            }
 
 %%
 

@@ -1,9 +1,12 @@
 %option noyywrap
 
+%x char_const
+
 %{
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include<string>
 
 int line_count=1;
 
@@ -31,6 +34,11 @@ void write_log_token(const char *token,const char *lexeme){
 
 WHITESPACE [ \t\f\r\v]+ 
 DIGIT [0-9]
+CONST_INT {DIGIT}+
+CONST_FLOAT ({DIGIT}+\.{DIGIT}*([eE][+-]?{DIGIT}+)?|\.{DIGIT}+([eE][+-]?{DIGIT}+)?|{DIGIT}+[eE][+-]?{DIGIT}+)
+SINGLE_CHAR [^\\'\n]\'
+ESCAPED_CHAR \\[ntafrbv0\'\\]\'
+MULTIPLE_CHAR [^'\n]+\'
 NEWLINE \n
 IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
 
@@ -209,15 +217,84 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
     }
 
 {IDENTIFIER}    {   
-                    char token[100];
-                    sprintf(token, "<ID,%s>", yytext);
-                    write_log_token(token, yytext);  
+                    fprintf(token_file, "<ID,%s> ", yytext);
+                    fprintf(log_file, "Line No. %d: Token <ID,%s> Lexeme %s found.\n", line_count, yytext, yytext);
                 }
-			
+
+{CONST_INT}     {
+                    fprintf(token_file, "<CONST_INT,%s> ", yytext);
+                    fprintf(log_file, "Line No. %d: Token <CONST_INT,%s> Lexeme %s found.\n", line_count, yytext, yytext);
+                }
+
+{CONST_FLOAT}   {
+                    fprintf(token_file, "<CONST_FLOAT,%s> ", yytext);
+                    fprintf(log_file, "Line No. %d: Token <CONST_FLOAT,%s> Lexeme %s found.\n", line_count, yytext, yytext);
+                }
+
+"\'"    {
+            BEGIN char_const;
+            yytext[0] = '\0';
+        }
+
+
+<char_const>{SINGLE_CHAR} {
+                            // Single character, followed by closing '
+                            int len = strlen(yytext);
+                            yytext[len-1] = '\0'; // Remove the closing '
+                            fprintf(token_file, "<CHAR_CONST,%s> ", yytext);
+                            fprintf(log_file, "Line No. %d: Token <CHAR_CONST,%s> Lexeme %s found.\n", line_count, yytext, yytext);
+                            BEGIN INITIAL;
+                        }
+
+<char_const>{ESCAPED_CHAR} {
+                                // Escaped character, followed by closing '
+                                int len = strlen(yytext);
+                                yytext[len-1] = '\0'; // Remove the closing '
+                                fprintf(token_file, "<CHAR_CONST,%s> ", yytext);
+                                fprintf(log_file, "Line No. %d: Token <CHAR_CONST,%s> Lexeme %s found.\n", line_count, yytext, yytext);
+                                BEGIN INITIAL;
+                           }
+
+<char_const>{MULTIPLE_CHAR} {
+                                // Multiple characters, followed by closing '
+                                // printf("%s", yytext);
+                                if(strcmp(yytext, "\\\'") == 0) {
+                                    fprintf(log_file, "Error at line no. %d: Missing terminating \' character \n", line_count);
+                                    BEGIN INITIAL;
+                                } else {
+                                    int len = strlen(yytext);
+                                    yytext[len-1] = '\0'; // Remove the closing '
+                                    // fprintf(token_file, "<CHAR_CONST,%s> ", yytext);
+                                    fprintf(log_file, "Error at line no. %d: Multi-character character constant \'%s\'\n", line_count, yytext);
+                                    BEGIN INITIAL;
+                                }
+
+                            }   
+
+<char_const>[\'] {
+                    // Single quote without a character
+                    // fprintf(token_file, "<CHAR_CONST,%s> ", yytext);
+                    fprintf(log_file, "Error at line no. %d: Empty character constant \n", line_count);
+                    BEGIN INITIAL;
+                }
+
+<char_const>{NEWLINE} {
+                        // Newline inside character constant
+                        // fprintf(token_file, "<CHAR_CONST,%s> ", yytext);
+                        fprintf(log_file, "Error at line no. %d: Missing terminating \' character \n", line_count);
+                        BEGIN INITIAL;
+                      }
+
+<char_const><<EOF>> {
+                        // End of file inside character constant
+                        // fprintf(token_file, "<CHAR_CONST,%s> ", yytext);
+                        fprintf(log_file, "Error at line no. %d: Missing terminating \' character \n", line_count);
+                        BEGIN INITIAL;
+                    }             
 
 %%
 
-int main(int argc,char *argv[]){
+int main(int argc,char *argv[]){    
 	
 	if(argc!=2){
 		printf("Please provide input file name and try again\n");

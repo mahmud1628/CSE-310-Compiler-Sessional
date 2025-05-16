@@ -96,6 +96,14 @@ class SymbolTable {
             }
         }
 
+        void printAllScopes(FILE *log_file) {
+            ScopeTable * scope = currentScope;
+            while(scope != nullptr) {
+                scope->print(log_file);
+                scope = scope->getParentScope();
+            }
+        }
+
         int getNumberOfCollisions() {
             calculateCollisions();
             return numberOfCollisions;

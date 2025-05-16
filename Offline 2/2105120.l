@@ -11,11 +11,14 @@
 #include<string.h>
 #include<string>
 #include<iostream>
+#include "2105120_SymbolTable.hpp"
 
 using namespace std;
 
 int line_count=1;
 string str,cmnt,escaped;
+
+SymbolTable symbolTable = SymbolTable(7);
 
 void increment_line_count(){
     line_count++;
@@ -56,7 +59,7 @@ FILE *log_file;
 FILE *token_file;
 
 void write_log(const char *token, const char *lexeme){
-    fprintf(log_file, "Line No. %d: Token %s Lexeme %s found.\n", line_count, token, lexeme);
+    fprintf(log_file, "Line No. %d: Token %s Lexeme %s found.\n\n", line_count, token, lexeme);
 }
 
 void write_token(const char *token) {
@@ -66,6 +69,12 @@ void write_token(const char *token) {
 void write_log_token(const char *token,const char *lexeme){
     write_log(token, lexeme);
     write_token(token);
+}
+
+void insert_to_symbol_table(const char * name, const string & type) {
+    string n(name);
+    symbolTable.insert(n, type);
+    symbolTable.printAllScopes(log_file);
 }
 
 %}
@@ -233,11 +242,13 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
         write_log_token("<RPAREN, )>", yytext);
     }
 
-"{" {
+"{" {   
+        symbolTable.enterScope();
         write_log_token("<LCURL, {>", yytext);
     }
 
-"}" {
+"}" {   
+        symbolTable.exitScope();
         write_log_token("<RCURL, }>", yytext);
     }
 
@@ -259,10 +270,13 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
 
 {IDENTIFIER}    {   
                     fprintf(token_file, "<ID, %s> ", yytext);
-                    fprintf(log_file, "Line No. %d: Token <ID,%s> Lexeme %s found.\n", line_count, yytext, yytext);
+                    fprintf(log_file, "Line No %d: Token <ID> Lexeme %s found\n\n", line_count, yytext);
+                    insert_to_symbol_table(yytext, "ID");
                 }
 
-{CONST_INT}     {
+{CONST_INT}     {   
+                    string name(yytext);
+                    symbolTable.insert(name, "CONST_INT");
                     fprintf(token_file, "<CONST_INT, %s> ", yytext);
                     fprintf(log_file, "Line No. %d: Token <CONST_INT,%s> Lexeme %s found.\n", line_count, yytext, yytext);
                 }
@@ -274,6 +288,8 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
 
 
 {CONST_FLOAT}   {
+                    string name(yytext);
+                    symbolTable.insert(name, "CONST_FLOAT");
                     fprintf(token_file, "<CONST_FLOAT, %s> ", yytext);
                     fprintf(log_file, "Line No. %d: Token <CONST_FLOAT,%s> Lexeme %s found.\n", line_count, yytext, yytext);
                 }
@@ -298,6 +314,8 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
                             // Single character, followed by closing '
                             int len = strlen(yytext);
                             yytext[len-1] = '\0'; // Remove the closing '
+                            string name(yytext);
+                            symbolTable.insert(name, "CONST_CHAR");
                             fprintf(token_file, "<CONST_CHAR, %s> ", yytext);
                             fprintf(log_file, "Line No. %d: Token <CHAR_CONST,%s> Lexeme %s found.\n", line_count, yytext, yytext);
                             BEGIN INITIAL;
@@ -310,6 +328,8 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
                                 // fprintf(token_file, "<CONST_CHAR, %s> ", yytext);
                                 escaped = escaped_character_token(yytext);
                                 // cout << escaped << endl;
+                                string name(escaped);
+                                symbolTable.insert(name, "CONST_CHAR");
                                 fprintf(token_file, "<CONST_CHAR, %s> ", escaped.c_str());
                                 fprintf(log_file, "Line No. %d: Token <CHAR_CONST,%s> Lexeme %s found.\n", line_count, yytext, yytext);
                                 BEGIN INITIAL;
@@ -383,6 +403,8 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
                           }
 <string_const>\"    {
                         str.erase(0,1);
+                        string name(str);
+                        symbolTable.insert(name, "STRING");
                         fprintf(token_file, "<STRING, %s> ", str.c_str());
                         fprintf(log_file, "Line no %d: Token <STRING> Lexeme \"%s\" found\n", line_count, str.c_str());
                         BEGIN INITIAL;

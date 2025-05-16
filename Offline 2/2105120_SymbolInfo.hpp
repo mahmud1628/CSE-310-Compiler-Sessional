@@ -43,8 +43,12 @@ class SymbolInfo {
         }
 
         friend ostream& operator<<(ostream& os, const SymbolInfo& symbolInfo) {
-            os << "<" << symbolInfo.name << "," << symbolInfo.type << ">";
+            os << "< " << symbolInfo.name << " : " << symbolInfo.type << " >";
             return os;
+        }
+
+        void print(FILE *log_file) const {
+            fprintf(log_file, "< %s : %s > ", name.c_str(), type.c_str());
         }
 };
 

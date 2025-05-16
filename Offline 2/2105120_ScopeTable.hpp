@@ -184,6 +184,22 @@ class ScopeTable {
                 cout << endl;
             }
         }
+
+        void print(FILE *log_file) {
+            fprintf(log_file, "ScopeTable # %s\n", id.c_str());
+            for(int i = 0; i < num_buckets; i++) {
+                SymbolInfo * current = hash_table[i];
+                if(current == nullptr) {
+                    continue; // skip empty buckets
+                }
+                fprintf(log_file, "%d --> ", i);
+                while(current != nullptr) {
+                    current->print(log_file);
+                    current = current->getNext();
+                }
+                fprintf(log_file, "\n");
+            }
+        }
 };
 
 

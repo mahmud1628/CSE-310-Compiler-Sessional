@@ -10,14 +10,46 @@
 #include<stdlib.h>
 #include<string.h>
 #include<string>
+#include<iostream>
 
 using namespace std;
 
 int line_count=1;
-string str,cmnt;
+string str,cmnt,escaped;
 
 void increment_line_count(){
     line_count++;
+}
+
+string escaped_character_token(const char *text) {
+    string s(text);
+    if(s == "\\n") {
+        return "\n";
+    } else if(s == "\\t") {
+        return "\t";
+    } else if(s == "\\r") {
+        return "\r";
+    } else if(s == "\\f") {
+        return "\f";
+    } else if(s == "\\a") {
+        return "\a";
+    } else if(s == "\\b") {
+        return "\b";
+    } else if(s == "\\v") {
+        return "\v";
+    } else if(s == "\\0") {
+        return "\0";
+    } else if(s == "\\\"") {
+        return "\"";
+    }
+    // } else if(s == "\\'") {
+    //     return "\'";
+    // } else if(s == "\\\"") {
+    //     return "\"";
+    // } else if(s == "\\\\") {
+    //     return "\\";
+    // }
+    return s; // Return the original string if no match found
 }
 
 FILE *log_file;
@@ -41,6 +73,9 @@ void write_log_token(const char *token,const char *lexeme){
 WHITESPACE [ \t\f\r\v]+ 
 DIGIT [0-9]
 CONST_INT {DIGIT}+
+TOO_MANY_DECIMAL_POINTS {DIGIT}*\.{DIGIT}*\.[0-9.]*
+ILL_FORMED_EXPONENT [Ee][-+\.0-9]+[-+Ee\.0-9]*
+ILL_FORMED_NUMBER {DIGIT}+(\.[0-9]*)?{ILL_FORMED_EXPONENT}
 CONST_FLOAT ({DIGIT}+\.{DIGIT}*([eE][+-]?{DIGIT}+)?|\.{DIGIT}+([eE][+-]?{DIGIT}+)?|{DIGIT}+[eE][+-]?{DIGIT}+)
 SINGLE_CHAR [^\\'\n]\'
 ESCAPED_CHAR \\[ntafrbv0\'\\]\'
@@ -145,7 +180,7 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
 "+" |
 "-" {   
         char token[16];
-        sprintf(token, "<ADDOP,%s>", yytext);
+        sprintf(token, "<ADDOP, %s>", yytext);
         write_log_token(token, yytext);
     }
 
@@ -153,30 +188,30 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
 "/" |
 "%" {
         char token[16];
-        sprintf(token, "<MULOP,%s>", yytext);
+        sprintf(token, "<MULOP, %s>", yytext);
         write_log_token(token, yytext);
     }
 
 "++" |
 "--" {
         char token[16];
-        sprintf(token, "<INCOP,%s>", yytext);
+        sprintf(token, "<INCOP, %s>", yytext);
         write_log_token(token, yytext);
      }
 
 "=" {   
-        write_log_token("<ASSIGNOP,=>", yytext);
+        write_log_token("<ASSIGNOP, =>", yytext);
     }
 
 "&&" |
 "||" {
         char token[16];
-        sprintf(token, "<LOGICOP,%s>", yytext);
+        sprintf(token, "<LOGICOP, %s>", yytext);
         write_log_token(token, yytext);
      }
 
 "!" {
-        write_log_token("<NOT,!>", yytext);
+        write_log_token("<NOT, !>", yytext);
     }
 
 "<" |
@@ -186,56 +221,72 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
 "==" |
 "!=" {
         char token[16];
-        sprintf(token, "<RELOP,%s>", yytext);
+        sprintf(token, "<RELOP, %s>", yytext);
         write_log_token(token, yytext);
      }
 
 "(" {
-        write_log_token("<LPAREN,(>", yytext);
+        write_log_token("<LPAREN, (>", yytext);
     }
 
 ")" {
-        write_log_token("<RPAREN,)>", yytext);
+        write_log_token("<RPAREN, )>", yytext);
     }
 
 "{" {
-        write_log_token("<LCURL,{>", yytext);
+        write_log_token("<LCURL, {>", yytext);
     }
 
 "}" {
-        write_log_token("<RCURL,}>", yytext);
+        write_log_token("<RCURL, }>", yytext);
     }
 
 "[" {
-        write_log_token("<LTHIRD,[>", yytext);
+        write_log_token("<LTHIRD, [>", yytext);
     }
 
 "]" {
-        write_log_token("<RTHIRD,]>", yytext);
+        write_log_token("<RTHIRD, ]>", yytext);
     }
 
 "," {
-        write_log_token("<COMMA,,>", yytext);
+        write_log_token("<COMMA, ,>", yytext);
     }
 
 ";" {
-        write_log_token("<SEMICOLON,;>", yytext);
+        write_log_token("<SEMICOLON, ;>", yytext);
     }
 
 {IDENTIFIER}    {   
-                    fprintf(token_file, "<ID,%s> ", yytext);
+                    fprintf(token_file, "<ID, %s> ", yytext);
                     fprintf(log_file, "Line No. %d: Token <ID,%s> Lexeme %s found.\n", line_count, yytext, yytext);
                 }
 
 {CONST_INT}     {
-                    fprintf(token_file, "<CONST_INT,%s> ", yytext);
+                    fprintf(token_file, "<CONST_INT, %s> ", yytext);
                     fprintf(log_file, "Line No. %d: Token <CONST_INT,%s> Lexeme %s found.\n", line_count, yytext, yytext);
                 }
 
+{TOO_MANY_DECIMAL_POINTS}   {
+                                // Handle error for too many decimal points
+                                fprintf(log_file, "Error at line no %d: Too many decimal points in constant %s\n", line_count, yytext);
+                            }
+
+
 {CONST_FLOAT}   {
-                    fprintf(token_file, "<CONST_FLOAT,%s> ", yytext);
+                    fprintf(token_file, "<CONST_FLOAT, %s> ", yytext);
                     fprintf(log_file, "Line No. %d: Token <CONST_FLOAT,%s> Lexeme %s found.\n", line_count, yytext, yytext);
                 }
+
+{ILL_FORMED_NUMBER}     {
+                            // Handle error for ill-formed number
+                            fprintf(log_file, "Error at line no %d: Ill-formed number %s\n", line_count, yytext);
+                        }
+
+{DIGIT}+{IDENTIFIER}+   {
+                            // Handle error for identifier starting with digit
+                            fprintf(log_file, "Error at line no %d: Invalid Suffix on numeric constant or invalid prefix on identifier %s\n", line_count, yytext);
+                        }
 
 "\'"    {
             BEGIN char_const;
@@ -247,7 +298,7 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
                             // Single character, followed by closing '
                             int len = strlen(yytext);
                             yytext[len-1] = '\0'; // Remove the closing '
-                            fprintf(token_file, "<CONST_CHAR,%s> ", yytext);
+                            fprintf(token_file, "<CONST_CHAR, %s> ", yytext);
                             fprintf(log_file, "Line No. %d: Token <CHAR_CONST,%s> Lexeme %s found.\n", line_count, yytext, yytext);
                             BEGIN INITIAL;
                         }
@@ -256,7 +307,10 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
                                 // Escaped character, followed by closing '
                                 int len = strlen(yytext);
                                 yytext[len-1] = '\0'; // Remove the closing '
-                                fprintf(token_file, "<CONST_CHAR,%s> ", yytext);
+                                // fprintf(token_file, "<CONST_CHAR, %s> ", yytext);
+                                escaped = escaped_character_token(yytext);
+                                // cout << escaped << endl;
+                                fprintf(token_file, "<CONST_CHAR, %s> ", escaped.c_str());
                                 fprintf(log_file, "Line No. %d: Token <CHAR_CONST,%s> Lexeme %s found.\n", line_count, yytext, yytext);
                                 BEGIN INITIAL;
                            }
@@ -313,22 +367,23 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
 
 <string_const>\\\n {
                         // Backslash followed by newline
-                        str += yytext;
+                        // str += "\\";
                         line_count++;
                     }
 
 <string_const>[\\\n] {
                         // Backslash followed by newline
-                        str += yytext;
+                        str += "\n";
                      }
 
 <string_const>\\[tafrbv0"] {
                             // Escaped character
-                            str += yytext;
+                            escaped = escaped_character_token(yytext);
+                            str += escaped;
                           }
 <string_const>\"    {
                         str.erase(0,1);
-                        fprintf(token_file, "<STRING,%s> ", str.c_str());
+                        fprintf(token_file, "<STRING, %s> ", str.c_str());
                         fprintf(log_file, "Line no %d: Token <STRING> Lexeme \"%s\" found\n", line_count, str.c_str());
                         BEGIN INITIAL;
                     }
@@ -387,7 +442,10 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
                                 fprintf(log_file, "Line No. %d: Error - Unterminated comment %s", line_count, cmnt.c_str());
                                 BEGIN INITIAL;
                             }
-
+.   {
+        // Handle any other characters
+        fprintf(log_file, "Error at line no %d: Unrecognized character %s\n", line_count, yytext);
+    }
 %%
 
 int main(int argc,char *argv[]){    

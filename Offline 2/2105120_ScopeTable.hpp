@@ -10,6 +10,7 @@ using namespace std;
 
 class ScopeTable {
     private:
+        FILE *log_file = nullptr;
         string id;
         int num_buckets; // number of buckets
         int num_children; // number of children
@@ -134,6 +135,8 @@ class ScopeTable {
                     if(verbose) {
                         cout << "\t'" << name << "' found in ScopeTable# " << id << " at position " << index + 1 << ", " << position << endl;
                     }
+                    if(log_file != nullptr)
+                        fprintf(log_file, "< %s : %s > already exists in ScopeTable# %s at position %d, %d\n\n", current->getName().c_str(), current->getType().c_str(), id.c_str(), index, position - 1);
                     return current;
                 }
                 position++;
@@ -185,7 +188,7 @@ class ScopeTable {
             }
         }
 
-        void print(FILE *log_file) {
+        void print_to_log() {
             fprintf(log_file, "ScopeTable # %s\n", id.c_str());
             for(int i = 0; i < num_buckets; i++) {
                 SymbolInfo * current = hash_table[i];
@@ -199,6 +202,10 @@ class ScopeTable {
                 }
                 fprintf(log_file, "\n");
             }
+        }
+
+        void setLogFile(FILE *log_file) {
+            this->log_file = log_file;
         }
 };
 

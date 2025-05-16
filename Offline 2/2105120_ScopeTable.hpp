@@ -10,32 +10,40 @@ using namespace std;
 
 class ScopeTable {
     private:
-        int id;
+        string id;
         int num_buckets; // number of buckets
         int num_children; // number of children
         SymbolInfo ** hash_table;
         ScopeTable * parent_scope;
         bool destructor_verbose;
-        function<unsigned int(string, int)> hash_function;
+        // function<unsigned int(string, int)> hash_function;
+        function<unsigned int(const char *)> hash_function;
         int numberOfCollisions; // number of collisions
     
     public:
-        ScopeTable(int id, int num_buckets, ScopeTable * parent_scope = nullptr,string hashName = "sdbm", bool destructor_verbose = false) : id(id), num_buckets(num_buckets), num_children(0), parent_scope(parent_scope), destructor_verbose(destructor_verbose) {
-            if(hashName == "sdbm") {
-                hash_function = Hash::SDBMHash; 
-            } else if(hashName == "bkdr") {
-                hash_function = Hash::BKDRHash;
-            } else if(hashName == "djb") {
-                hash_function = Hash::DJBHash;
+        ScopeTable(int num_buckets, ScopeTable * parent_scope = nullptr,string hashName = "sdbm", bool destructor_verbose = false) : num_buckets(num_buckets), num_children(0), parent_scope(parent_scope), destructor_verbose(destructor_verbose) {
+            // if(hashName == "sdbm") {
+            //     hash_function = Hash::SDBMHash; 
+            // } else if(hashName == "bkdr") {
+            //     hash_function = Hash::BKDRHash;
+            // } else if(hashName == "djb") {
+            //     hash_function = Hash::DJBHash;
+            // } else {
+            //     //Invalid hash function name. Using default SDBM hash
+            //     hash_function = Hash::SDBMHash;
+            // }
+            if(parent_scope == nullptr) {
+                id = "1"; // global scope
             } else {
-                //Invalid hash function name. Using default SDBM hash
-                hash_function = Hash::SDBMHash;
+                id = parent_scope->getId() + "." + to_string(parent_scope->getNumChildren()); // increment the id of the parent scope
             }
+            hash_function = Hash::sdbmHash; // default hash function for offline 2
             hash_table = new SymbolInfo*[num_buckets];
             for (int i = 0; i < num_buckets; i++) {
                 hash_table[i] = nullptr;
             }
             numberOfCollisions = 0;
+            num_children = 0;
         }
 
         ~ScopeTable() {
@@ -51,7 +59,7 @@ class ScopeTable {
             }
         }
 
-        int getId() const {
+        string getId() const {
             return id;
         }
 
@@ -75,16 +83,16 @@ class ScopeTable {
             num_children++;
         }
 
-        void decrementNumChildren() {
-            num_children--;
-        }
+        // void decrementNumChildren() {
+        //     num_children--;
+        // }
 
         int getNumberOfCollisions() const {
             return numberOfCollisions;
         }
 
         int getBucketIndex(string & name) {
-            unsigned int hash = hash_function(name, num_buckets);
+            unsigned int hash = hash_function(name.c_str());
             return hash % num_buckets;
         }
 

@@ -29,7 +29,11 @@ class SymbolTable {
         }
 
         void enterScope(bool verbose = false) {
-            ScopeTable * newScope = new ScopeTable(++num_scopes, num_buckets, currentScope, hashName , verbose);
+            if(currentScope != nullptr) {
+                currentScope->incrementNumChildren();
+            }
+            num_scopes++;
+            ScopeTable * newScope = new ScopeTable(num_buckets, currentScope, hashName , verbose);
             currentScope = newScope;
             if(verbose) {
                 cout << "\tScopeTable# " << currentScope->getId() << " created" << endl;

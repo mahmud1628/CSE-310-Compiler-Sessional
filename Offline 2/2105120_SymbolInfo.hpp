@@ -48,7 +48,7 @@ class SymbolInfo {
         }
 
         void print(FILE *log_file) const {
-            fprintf(log_file, "< %s : %s > ", name.c_str(), type.c_str());
+            fprintf(log_file, "< %s : %s >", name.c_str(), type.c_str());
         }
 };
 

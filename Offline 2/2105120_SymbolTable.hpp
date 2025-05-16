@@ -14,6 +14,7 @@ class SymbolTable {
         int num_scopes;
         int numberOfCollisions;
         string hashName;
+        FILE *log_file = nullptr;
     
     public:
         SymbolTable(int num_buckets, string hashName = "sdbm" , bool verbose = false) : num_buckets(num_buckets), hashName(hashName) {
@@ -34,6 +35,8 @@ class SymbolTable {
             }
             num_scopes++;
             ScopeTable * newScope = new ScopeTable(num_buckets, currentScope, hashName , verbose);
+            if(log_file != nullptr)
+                newScope->setLogFile(log_file);
             currentScope = newScope;
             if(verbose) {
                 cout << "\tScopeTable# " << currentScope->getId() << " created" << endl;
@@ -96,12 +99,13 @@ class SymbolTable {
             }
         }
 
-        void printAllScopes(FILE *log_file) {
+        void printAllScopesToLog() {
             ScopeTable * scope = currentScope;
             while(scope != nullptr) {
-                scope->print(log_file);
+                scope->print_to_log();
                 scope = scope->getParentScope();
             }
+            fprintf(log_file, "\n");
         }
 
         int getNumberOfCollisions() {
@@ -122,6 +126,13 @@ class SymbolTable {
         }
         int getNumBuckets() {
             return num_buckets;
+        }
+
+        void setLogFile(FILE *log_file) {
+            this->log_file = log_file;
+            if(currentScope != nullptr) {
+                currentScope->setLogFile(log_file);
+            }
         }
         
 

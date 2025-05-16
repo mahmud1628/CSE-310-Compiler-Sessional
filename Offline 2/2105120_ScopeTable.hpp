@@ -23,16 +23,6 @@ class ScopeTable {
     
     public:
         ScopeTable(int num_buckets, ScopeTable * parent_scope = nullptr,string hashName = "sdbm", bool destructor_verbose = false) : num_buckets(num_buckets), num_children(0), parent_scope(parent_scope), destructor_verbose(destructor_verbose) {
-            // if(hashName == "sdbm") {
-            //     hash_function = Hash::SDBMHash; 
-            // } else if(hashName == "bkdr") {
-            //     hash_function = Hash::BKDRHash;
-            // } else if(hashName == "djb") {
-            //     hash_function = Hash::DJBHash;
-            // } else {
-            //     //Invalid hash function name. Using default SDBM hash
-            //     hash_function = Hash::SDBMHash;
-            // }
             if(parent_scope == nullptr) {
                 id = "1"; // global scope
             } else {
@@ -83,10 +73,6 @@ class ScopeTable {
         void incrementNumChildren() {
             num_children++;
         }
-
-        // void decrementNumChildren() {
-        //     num_children--;
-        // }
 
         int getNumberOfCollisions() const {
             return numberOfCollisions;
@@ -192,9 +178,8 @@ class ScopeTable {
             fprintf(log_file, "ScopeTable # %s\n", id.c_str());
             for(int i = 0; i < num_buckets; i++) {
                 SymbolInfo * current = hash_table[i];
-                if(current == nullptr) {
-                    continue; // skip empty buckets
-                }
+                if(current == nullptr) continue; // skip empty buckets
+                
                 fprintf(log_file, "%d --> ", i);
                 while(current != nullptr) {
                     current->print(log_file);

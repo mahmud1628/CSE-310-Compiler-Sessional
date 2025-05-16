@@ -37,6 +37,7 @@ class SymbolTable {
             ScopeTable * newScope = new ScopeTable(num_buckets, currentScope, hashName , verbose);
             if(log_file != nullptr)
                 newScope->setLogFile(log_file);
+
             currentScope = newScope;
             if(verbose) {
                 cout << "\tScopeTable# " << currentScope->getId() << " created" << endl;
@@ -135,7 +136,6 @@ class SymbolTable {
             }
         }
         
-
 };
 
 

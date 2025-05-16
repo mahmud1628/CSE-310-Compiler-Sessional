@@ -2,4 +2,4 @@
 
 flex 2105120.l
 g++ lex.yy.c
-./a.out test.txt
+./a.out $1

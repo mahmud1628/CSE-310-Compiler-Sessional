@@ -27,32 +27,15 @@ void increment_line_count(){
 
 string escaped_character_token(const char *text) {
     string s(text);
-    if(s == "\\n") {
-        return "\n";
-    } else if(s == "\\t") {
-        return "\t";
-    } else if(s == "\\r") {
-        return "\r";
-    } else if(s == "\\f") {
-        return "\f";
-    } else if(s == "\\a") {
-        return "\a";
-    } else if(s == "\\b") {
-        return "\b";
-    } else if(s == "\\v") {
-        return "\v";
-    } else if(s == "\\0") {
-        return "\0";
-    } else if(s == "\\\"") {
-        return "\"";
-    }
-    // } else if(s == "\\'") {
-    //     return "\'";
-    // } else if(s == "\\\"") {
-    //     return "\"";
-    // } else if(s == "\\\\") {
-    //     return "\\";
-    // }
+    if(s == "\\n") return "\n";
+    if(s == "\\t") return "\t";
+    if(s == "\\r") return "\r";
+    if(s == "\\f") return "\f";
+    if(s == "\\a") return "\a";
+    if(s == "\\b") return "\b";
+    if(s == "\\v") return "\v";
+    if(s == "\\0") return "\0";
+    if(s == "\\\"") return "\"";
     return s; // Return the original string if no match found
 }
 
@@ -326,6 +309,12 @@ IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
                             fprintf(log_file, "Error at line no %d: Ill formed number %s\n\n\n", line_count, yytext);
                         }
 
+{TOO_MANY_DECIMAL_POINTS}{ILL_FORMED_EXPONENT}    {
+                                                        // Handle error for too many decimal points
+                                                        error_count++;
+                                                        fprintf(log_file, "Error at line no %d: Too many decimal points %s\n\n\n", line_count, yytext);
+                                                    }
+
 {DIGIT}+{IDENTIFIER}+   {
                             // Handle error for identifier starting with digit
                             error_count++;
@@ -528,14 +517,14 @@ int main(int argc,char *argv[]){
 		return 0;
 	}
 	
-	FILE *fin=fopen(argv[1],"r");
+	FILE *fin = fopen(argv[1],"r");
 	if(fin==NULL){
 		printf("Cannot open specified file\n");
 		return 0;
 	}
 	
-	log_file= fopen("log.txt","w");
-	token_file= fopen("token.txt","w");
+	log_file = fopen("2105120_log.txt","w");
+	token_file = fopen("2105120_token.txt","w");
     symbolTable.setLogFile(log_file);
 
 	yyin= fin;

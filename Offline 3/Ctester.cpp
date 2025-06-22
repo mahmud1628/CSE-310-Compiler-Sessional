@@ -4,6 +4,7 @@
 #include "antlr4-runtime.h"
 #include "C8086Lexer.h"
 #include "C8086Parser.h"
+#include "2105120_SymbolTable.hpp"
 
 using namespace antlr4;
 using namespace std;
@@ -13,6 +14,8 @@ ofstream errorFile; // global error stream
 ofstream lexLogFile; // global lexer log stream
 
 int syntaxErrorCount;
+
+SymbolTable symbolTable(7);
 
 int main(int argc, const char* argv[]) {
     if (argc < 2) {
@@ -53,7 +56,6 @@ int main(int argc, const char* argv[]) {
         cerr << "Error opening lexer log file: " << lexLogFileName << endl;
         return 1;
     }
-   
     // ---- Parsing Flow ----
     ANTLRInputStream input(inputFile);
     C8086Lexer lexer(&input);

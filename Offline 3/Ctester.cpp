@@ -5,6 +5,9 @@
 #include "C8086Lexer.h"
 #include "C8086Parser.h"
 #include "2105120_SymbolTable.hpp"
+#include <vector>
+#include <map>
+
 
 using namespace antlr4;
 using namespace std;
@@ -16,6 +19,10 @@ ofstream lexLogFile; // global lexer log stream
 int syntaxErrorCount;
 
 SymbolTable symbolTable(7);
+
+string current_const_type, assign_type, var_type, term_operand_type, unary_e_operand_type;
+vector<string> declaration_list_ids;
+map<string, string> variableTypes; // maps variable names to their types
 
 int main(int argc, const char* argv[]) {
     if (argc < 2) {

@@ -51,6 +51,6 @@ class SymbolInfo {
         }
 
         string getSymbolInfoAsString() const {
-            return "< " + name + " : " + type + " >";
+            return "< " + name + " : " + "ID" + " >";
         }
 };

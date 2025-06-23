@@ -25,6 +25,8 @@ options {
 
 	extern vector<string> declaration_list_ids;
 	extern map<string, string> variableTypes;
+	extern bool is_func_declaration;
+	extern vector<pair<string, string>> parameter_list_ids;
 }
 
 @parser::members {
@@ -99,28 +101,34 @@ unit returns [std::string unit_text]
     ;
      
 func_declaration returns [std::string fd_text]
-		: ts=type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
+		: ts=type_specifier {is_func_declaration = true;} ID LPAREN pl=parameter_list RPAREN SEMICOLON
 		{
-			
+			$fd_text = $ts.ctx->getText() + " " + $ID->getText() + "(" + $pl.pl_text + ");";
+			writeIntoparserLogFile("Line " + std::to_string($ts.start->getLine()) + ": func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON\n");
+			writeIntoparserLogFile($fd_text + "\n");
+
+			symbolTable.insert($ID->getText(), "func");
+			is_func_declaration = false;			
 		}
-		| ts=type_specifier ID LPAREN RPAREN SEMICOLON 
+		| ts=type_specifier {is_func_declaration = true;} ID LPAREN RPAREN SEMICOLON 
 		{
 			$fd_text = $ts.ctx->getText() + " " + $ID->getText() + "();";
 			writeIntoparserLogFile("Line " + std::to_string($ts.start->getLine()) + ": func_declaration : type_specifier ID LPAREN RPAREN SEMICOLON\n");
 			writeIntoparserLogFile($ts.ctx->getText() + " " + $ID->getText() + "();\n");
 
 			symbolTable.insert($ID->getText(), "func");
+			is_func_declaration = false;
 		}
 		;
 		 
 func_definition returns [std::string fdef_text]
-	: ts=type_specifier ID {symbolTable.insert($ID->getText(), "func");} LPAREN {symbolTable.enterScope();} pl=parameter_list RPAREN cs=compound_statement
+	: ts=type_specifier ID {symbolTable.insert($ID->getText(), "func");} LPAREN pl=parameter_list RPAREN cs=compound_statement
 	{
 		$fdef_text = $ts.text + " " + $ID->getText() + $LPAREN->getText() + $pl.pl_text + $RPAREN->getText() + $cs.cs_text;
 		writeIntoparserLogFile("Line " + std::to_string($cs.stop->getLine()) + ": func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement\n");
 		writeIntoparserLogFile($fdef_text + "\n");
 	}
-	| ts=type_specifier ID {symbolTable.insert($ID->getText(), "func");} LPAREN {symbolTable.enterScope();} RPAREN cs=compound_statement
+	| ts=type_specifier ID {symbolTable.insert($ID->getText(), "func");} LPAREN RPAREN cs=compound_statement
 	{
 		$fdef_text = $ts.text + " " + $ID->getText() + $LPAREN->getText() + $RPAREN->getText() + $cs.cs_text;
 		writeIntoparserLogFile("Line " + std::to_string($cs.stop->getLine()) + ": func_definition : type_specifier ID LPAREN RPAREN compound_statement\n");
@@ -136,7 +144,11 @@ parameter_list returns [std::string pl_text]
 			writeIntoparserLogFile("Line " + std::to_string($ts.start->getLine()) + ": parameter_list : parameter_list COMMA type_specifier ID\n");
 			writeIntoparserLogFile($pl_text + "\n");
 
-			symbolTable.insert($ID->getText(), $ts.text);
+			if(!is_func_declaration)
+			{
+				// symbolTable.insert($ID->getText(), $ts.text);
+				parameter_list_ids.push_back({$ID->getText(), $ts.text});
+			}
 		}
 		| parameter_list COMMA type_specifier
  		| ts=type_specifier ID
@@ -145,14 +157,26 @@ parameter_list returns [std::string pl_text]
 			writeIntoparserLogFile("Line " + std::to_string($ts.start->getLine()) + ": parameter_list : type_specifier ID\n");
 			writeIntoparserLogFile($ts.text + " " + $ID->getText() + "\n");
 			
-			symbolTable.insert($ID->getText(), $ts.text);
+			if(!is_func_declaration)
+			{
+				// symbolTable.insert($ID->getText(), $ts.text);
+				parameter_list_ids.push_back({$ID->getText(), $ts.text});
+			}
 		}
 		| type_specifier
  		;
 
  		
 compound_statement returns [std::string cs_text]
-		: LCURL ss=statements RCURL
+		: LCURL {symbolTable.enterScope();
+			if(parameter_list_ids.size() > 0) 
+			{
+				for(int i = 0; i < parameter_list_ids.size(); i++)
+					symbolTable.insert(parameter_list_ids[i].first, parameter_list_ids[i].second);
+				
+				parameter_list_ids.clear();
+			}
+		} ss=statements RCURL
 		{
 			$cs_text = $LCURL->getText() + "\n" + $ss.statements_text + "\n" + $RCURL->getText();
 			writeIntoparserLogFile("Line " + std::to_string($RCURL->getLine()) + ": compound_statement : LCURL statements RCURL\n");
@@ -176,6 +200,7 @@ var_declaration returns [std::string vd_text]
 
 		for(int i=0; i<declaration_list_ids.size();i++)
 			symbolTable.insert(declaration_list_ids[i], $t.text);
+		declaration_list_ids.clear();
 	}
     | t=type_specifier de=declaration_list_err sm=SEMICOLON
     ;
@@ -226,7 +251,16 @@ declaration_list returns [std::string dl_text]
 			declaration_list_ids.push_back($ID->getText());
 			variableTypes[$ID->getText()] = "variable";
 		}
- 		| declaration_list COMMA ID LTHIRD CONST_INT RTHIRD
+ 		| dl=declaration_list COMMA ID LTHIRD CONST_INT RTHIRD
+		{
+			$dl_text = $dl.dl_text + "," + $ID->getText() + $LTHIRD->getText() + $CONST_INT->getText() + $RTHIRD->getText();
+			writeIntoparserLogFile("Line " + std::to_string($ID->getLine()) + ": declaration_list : declaration_list COMMA ID LTHIRD CONST_INT RTHIRD\n");
+			writeIntoparserLogFile($dl_text + "\n");
+
+			// symbolTable.insert($ID->getText(), "ID");
+			declaration_list_ids.push_back($ID->getText());
+			variableTypes[$ID->getText()] = "array";			
+		}
  		| ID 
 		{
 			// bool inserted = symbolTable.insert($ID->getText(), "ID");
@@ -270,7 +304,7 @@ statements returns [std::string statements_text]
 	| ss=statements s=statement
 	{
 		$statements_text = $ss.statements_text + "\n" + $s.statement_text;
-		writeIntoparserLogFile("Line " + std::to_string($s.start->getLine()) + ": statements : statements statement\n");
+		writeIntoparserLogFile("Line " + std::to_string($s.stop->getLine()) + ": statements : statements statement\n");
 		writeIntoparserLogFile($statements_text + "\n");
 	}
 	;
@@ -288,12 +322,42 @@ statement returns [std::string statement_text]
 		writeIntoparserLogFile("Line " + std::to_string($es.start->getLine()) + ": statement : expression_statement\n");
 		writeIntoparserLogFile($statement_text + "\n");				
 	}
-	| compound_statement
-	| FOR LPAREN expression_statement expression_statement expression RPAREN statement
-	| IF LPAREN expression RPAREN statement
-	| IF LPAREN expression RPAREN statement ELSE statement
-	| WHILE LPAREN expression RPAREN statement
+	| cs=compound_statement
+	{
+		$statement_text = $cs.cs_text;
+		writeIntoparserLogFile("Line " + std::to_string($cs.stop->getLine()) + ": statement : compound_statement\n");
+		writeIntoparserLogFile($statement_text + "\n");
+	}
+	| FOR LPAREN es1=expression_statement es2=expression_statement e=expression RPAREN s=statement
+	{
+		$statement_text = $FOR->getText() + $LPAREN->getText() + $es1.expression_statement_text + $es2.expression_statement_text + $e.expression_text + $RPAREN->getText() + $s.statement_text;
+		writeIntoparserLogFile("Line " + std::to_string($s.stop->getLine()) + ": statement : FOR LPAREN expression_statement expression_statement expression RPAREN statement\n");
+		writeIntoparserLogFile($statement_text + "\n");
+	}
+	| IF LPAREN e=expression RPAREN s=statement
+	{
+		$statement_text = $IF->getText() + $LPAREN->getText() + $e.expression_text + $RPAREN->getText() + $s.statement_text;
+		writeIntoparserLogFile("Line " + std::to_string($s.stop->getLine()) + ": statement : IF LPAREN expression RPAREN statement\n");
+		writeIntoparserLogFile($statement_text + "\n");		
+	}
+	| IF LPAREN e=expression RPAREN s1=statement ELSE s2=statement
+	{
+		$statement_text = $IF->getText() + $LPAREN->getText() + $e.expression_text + $RPAREN->getText() + $s1.statement_text + $ELSE->getText() + " " + $s2.statement_text;
+		writeIntoparserLogFile("Line " + std::to_string($s2.stop->getLine()) + ": statement : IF LPAREN expression RPAREN statement ELSE statement\n");
+		writeIntoparserLogFile($statement_text + "\n");	
+	}
+	| WHILE LPAREN e=expression RPAREN s=statement
+	{
+		$statement_text = $WHILE->getText() + $LPAREN->getText() + $e.expression_text + $RPAREN->getText() + $s.statement_text;
+		writeIntoparserLogFile("Line " + std::to_string($s.stop->getLine()) + ": statement : WHILE LPAREN expression RPAREN statement\n");
+		writeIntoparserLogFile($statement_text + "\n");
+	}
 	| PRINTLN LPAREN ID RPAREN SEMICOLON
+	{
+		$statement_text = $PRINTLN->getText() + $LPAREN->getText() + $ID->getText() + $RPAREN->getText() + ";";
+		writeIntoparserLogFile("Line " + std::to_string($SEMICOLON->getLine()) + ": statement : PRINTLN LPAREN ID RPAREN SEMICOLON\n");
+		writeIntoparserLogFile($statement_text + "\n");		
+	}
 	| RETURN e=expression SEMICOLON
 	{
 		$statement_text = "return " + $e.expression_text + ";";
@@ -303,7 +367,12 @@ statement returns [std::string statement_text]
 	;
 	  
 expression_statement returns [std::string expression_statement_text]
-			: SEMICOLON			
+			: SEMICOLON	
+			{
+				$expression_statement_text = ";";
+				writeIntoparserLogFile("Line " + std::to_string($SEMICOLON->getLine()) + ": expression_statement : SEMICOLON\n");
+				writeIntoparserLogFile($expression_statement_text + "\n");
+			}		
 			| e=expression SEMICOLON
 			{
 				$expression_statement_text = $e.expression_text + ";";
@@ -457,8 +526,18 @@ term returns [std::string term_text]
     ;
 
 unary_expression returns [std::string unary_expression_text]
-		: ADDOP unary_expression  
-		| NOT unary_expression 
+		: ADDOP ue=unary_expression  
+		{
+			$unary_expression_text = $ADDOP->getText() + $ue.unary_expression_text;
+			writeIntoparserLogFile("Line " + std::to_string($ue.stop->getLine()) + ": unary_expression : ADDOP unary_expression\n");
+			writeIntoparserLogFile($unary_expression_text + "\n");			
+		}
+		| NOT ue=unary_expression 
+		{
+			$unary_expression_text = $NOT->getText() + $ue.unary_expression_text;
+			writeIntoparserLogFile("Line " + std::to_string($ue.stop->getLine()) + ": unary_expression : NOT unary_expression\n");
+			writeIntoparserLogFile($unary_expression_text + "\n");			
+		}
 		| f=factor 
 		{
 			$unary_expression_text = $f.factor_text;
@@ -506,8 +585,18 @@ factor	returns [std::string factor_text]
 		current_const_type = "FLOAT";	
 		assign_type = "float";		
 	}
-	| variable INCOP 
-	| variable DECOP
+	| v=variable INCOP 
+	{
+		$factor_text = $v.variable_text + $INCOP->getText();
+		writeIntoparserLogFile("Line " + std::to_string($INCOP->getLine()) + ": factor : variable INCOP\n");
+		writeIntoparserLogFile($factor_text + "\n");		
+	}
+	| v=variable DECOP
+	{
+		$factor_text = $v.variable_text + $DECOP->getText();
+		writeIntoparserLogFile("Line " + std::to_string($DECOP->getLine()) + ": factor : variable DECOP\n");
+		writeIntoparserLogFile($factor_text + "\n");		
+	}
 	;
 	
 argument_list returns [std::string arglist_text]

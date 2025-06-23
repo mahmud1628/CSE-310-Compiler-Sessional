@@ -23,6 +23,8 @@ SymbolTable symbolTable(7);
 string current_const_type, assign_type, var_type, term_operand_type, unary_e_operand_type;
 vector<string> declaration_list_ids;
 map<string, string> variableTypes; // maps variable names to their types
+bool is_func_declaration = false;
+vector<pair<string, string>> parameter_list_ids;
 
 int main(int argc, const char* argv[]) {
     if (argc < 2) {

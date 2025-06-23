@@ -219,6 +219,15 @@ func_definition returns [std::string fdef_text]
 		writeIntoparserLogFile("Line " + std::to_string($cs.stop->getLine()) + ": func_definition : type_specifier ID LPAREN RPAREN compound_statement\n");
 		writeIntoparserLogFile($fdef_text + "\n");
 	}
+	| ts=type_specifier ID {function_def($ID->getText(), $ts.text);} LPAREN pl=parameter_list ADDOP RPAREN {
+				syntaxErrorCount++;
+		std::string errorMessage = "Error at line " + std::to_string($ADDOP->getLine()) + ": syntax error, unexpected ADDOP, expecting RPAREN or COMMA";
+		writeIntoparserLogFile(errorMessage + "\n");
+		writeIntoErrorFile(errorMessage + "\n");
+	} cs=compound_statement
+	{
+		$fdef_text = $ts.text + " " + $ID->getText() + $LPAREN->getText() + $pl.pl_text + $RPAREN->getText() + $cs.cs_text;
+	}
 	;				
 
 
@@ -261,7 +270,12 @@ parameter_list returns [std::string pl_text]
 				parameter_list_ids.push_back({$ID->getText(), $ts.text});
 			}
 		}
-		| type_specifier
+		| ts=type_specifier
+		{
+			$pl_text = $ts.text;
+			writeIntoparserLogFile("Line " + std::to_string($ts.start->getLine()) + ": parameter_list : type_specifier\n");
+			writeIntoparserLogFile($ts.text + "\n");			
+		}
  		;
 
  		
@@ -283,7 +297,23 @@ compound_statement returns [std::string cs_text]
 			writeIntoparserLogFile(symbolTable.getSymbolTableAsString());
 			symbolTable.exitScope();
 		}
-		| LCURL RCURL
+		| LCURL {symbolTable.enterScope();
+			if(parameter_list_ids.size() > 0) 
+			{
+				for(int i = 0; i < parameter_list_ids.size(); i++)
+					symbolTable.insert(parameter_list_ids[i].first, parameter_list_ids[i].second);
+				
+				parameter_list_ids.clear();
+			}
+		}  RCURL
+		{
+			$cs_text = $LCURL->getText() + $RCURL->getText();
+			writeIntoparserLogFile("Line " + std::to_string($RCURL->getLine()) + ": compound_statement : LCURL RCURL\n");
+			writeIntoparserLogFile($cs_text + "\n");
+
+			writeIntoparserLogFile(symbolTable.getSymbolTableAsString());
+			symbolTable.exitScope();
+		}
 		;
  		    
 var_declaration returns [std::string vd_text]
@@ -408,6 +438,15 @@ declaration_list returns [std::string dl_text]
 			// symbolTable.insert($ID->getText(), "ID");
 			declaration_list_ids.push_back($ID->getText());
 			variableTypes[$ID->getText()] = "array";
+		}
+		| dl=declaration_list ADDOP ID
+		{
+			$dl_text = $dl.dl_text;
+			syntaxErrorCount++;
+			std::string errorMessage = "Error at line " + std::to_string($ID->getLine()) + ": syntax error, unexpected ADDOP, expecting COMMA or SEMICOLON";
+			writeIntoparserLogFile(errorMessage + "\n");
+			writeIntoErrorFile(errorMessage + "\n");
+
 		}
  		;
  		  
@@ -605,6 +644,13 @@ variable returns [std::string variable_text]
 
 		writeIntoparserLogFile($expression_text + "\n");
 	}
+	| UNRECOGNIZED
+	{
+		syntaxErrorCount++;
+		std::string errorMessage = "Error at line " + std::to_string($UNRECOGNIZED->getLine()) + ": Unrecognized character " + $UNRECOGNIZED->getText();
+		writeIntoparserLogFile(errorMessage + "\n");
+		writeIntoErrorFile(errorMessage + "\n");
+	}
 	;
 			
 logic_expression returns [std::string logic_expression_text]
@@ -649,6 +695,13 @@ simple_expression returns [std::string simple_expression_text]
 			$simple_expression_text = $se.simple_expression_text + $ADDOP->getText() + $t.term_text;
 			writeIntoparserLogFile("Line " + std::to_string($se.start->getLine()) + ": simple_expression : simple_expression ADDOP term\n");
 			writeIntoparserLogFile($simple_expression_text + "\n");
+		}
+		| se=simple_expression ADDOP ASSIGNOP t=term
+		{
+			syntaxErrorCount++;
+			std::string errorMessage = "Error at line " + std::to_string($se.start->getLine()) + ": syntax error, unexpected ASSIGNOP";
+			writeIntoparserLogFile(errorMessage + "\n");
+			writeIntoErrorFile(errorMessage + "\n");
 		}
 		;
 					
@@ -698,7 +751,7 @@ term returns [std::string term_text]
 			}
 			currentFunction = nullptr;
 		}
-
+		if(argument_list_types.size() > 0) argument_list_types.pop_back();
 		writeIntoparserLogFile($term_text + "\n");
 	}
     ;

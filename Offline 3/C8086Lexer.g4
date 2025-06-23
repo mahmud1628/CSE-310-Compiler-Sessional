@@ -109,7 +109,7 @@ NOT      : '!' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": T
 RELOP    : '<=' | '==' | '>=' | '>' | '<' | '!=' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <RELOP> Lexeme " + getText()); };
 LOGICOP  : '&&' | '||' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <LOGICOP> Lexeme " + getText()); };
 ASSIGNOP : '=' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <ASSIGNOP> Lexeme " + getText()); };
-
+UNRECOGNIZED : '#' { writeIntoLexLogFile("Line# " + std::to_string(getLine()) + ": Token <UNRECOGNIZED> Lexeme " + getText()); };
 // ------------------------------
 // 5) Identifiers & Numbers
 // ------------------------------

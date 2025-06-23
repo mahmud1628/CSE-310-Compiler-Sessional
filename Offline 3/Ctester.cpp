@@ -24,7 +24,11 @@ string current_const_type, assign_type, var_type, term_operand_type, unary_e_ope
 vector<string> declaration_list_ids;
 map<string, string> variableTypes; // maps variable names to their types
 bool is_func_declaration = false;
+bool is_func_definition = false;
 vector<pair<string, string>> parameter_list_ids;
+vector<string> argument_list_types;
+
+SymbolInfo* currentFunction = nullptr; // pointer to the current function being processed
 
 int main(int argc, const char* argv[]) {
     if (argc < 2) {

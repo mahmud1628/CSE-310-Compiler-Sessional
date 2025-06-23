@@ -84,6 +84,15 @@ class SymbolTable {
             return nullptr; // not found
         }
 
+        SymbolInfo * lookupAtCurrentScope(string name) {
+            ScopeTable * scope = currentScope;
+            SymbolInfo * symbol = scope->lookup(name);
+            if(symbol != nullptr) {
+                return symbol; // found in current scope
+            }
+            return nullptr; // not found in current scope
+        }
+
         void printCurrentScope(bool tabs = false) {
             int numberOfTabs;
             tabs ? numberOfTabs = 1 : numberOfTabs = 0;

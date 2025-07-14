@@ -1,1 +1,5 @@
 .vscode/
+Offline\ 4/*.o 
+Offline\ 4/*.out
+Offline\ 4/*Lexer.*
+Offline\ 4/*Parser*.*

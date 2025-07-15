@@ -5,11 +5,10 @@
 #include "C8086Lexer.h"
 #include "C8086Parser.h"
 
-
 using namespace antlr4;
 using namespace std;
 
-ofstream lexLogFile; // global lexer log stream
+ofstream lexLogFile;
 
 int main(int argc, const char* argv[]) {
     if (argc < 2) {
@@ -17,7 +16,6 @@ int main(int argc, const char* argv[]) {
         return 1;
     }
 
-    // ---- Input File ----
     ifstream inputFile(argv[1]);
     if (!inputFile.is_open()) {
         cerr << "Error opening input file: " << argv[1] << endl;
@@ -26,8 +24,6 @@ int main(int argc, const char* argv[]) {
 
     string outputDirectory = "output/";
     string lexLogFileName = outputDirectory + "lexerLog.txt";
-
-    // create output directory if it doesn't exist
     system(("mkdir -p " + outputDirectory).c_str());
 
     lexLogFile.open(lexLogFileName);
@@ -35,21 +31,17 @@ int main(int argc, const char* argv[]) {
         cerr << "Error opening lexer log file: " << lexLogFileName << endl;
         return 1;
     }
-    // ---- Parsing Flow ----
+
     ANTLRInputStream input(inputFile);
     C8086Lexer lexer(&input);
     CommonTokenStream tokens(&lexer);
     C8086Parser parser(&tokens);
-
-    // this is necessary to avoid the default error listener and use our custom error handling
     parser.removeErrorListeners();
 
-    // start parsing at the 'start' rule
     parser.start();
 
-    // clean up
     inputFile.close();
     lexLogFile.close();
-    cout << "Parsing completed. Check the output files for details." << endl;
+    cout << "Parsing and visiting completed." << endl;
     return 0;
 }

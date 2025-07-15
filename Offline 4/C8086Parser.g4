@@ -2,8 +2,6 @@ parser grammar C8086Parser;
 
 options {
     tokenVocab = C8086Lexer;
-    language = Cpp;
-    visitor = true;
 }
 
 

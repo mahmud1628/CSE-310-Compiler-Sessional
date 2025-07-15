@@ -4,6 +4,20 @@ options {
     tokenVocab = C8086Lexer;
 }
 
+@parser::header {
+	#include <iostream>
+	#include <fstream>
+	#include "C8086Lexer.h"
+
+	extern std::ofstream asmCodeFile;
+}
+
+@parser::members {
+	void writeIntoCodeFile(const std::string code) {
+		asmCodeFile << code;
+	}
+}
+
 
 start : program
         ;

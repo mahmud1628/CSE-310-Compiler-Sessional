@@ -9,6 +9,7 @@ using namespace antlr4;
 using namespace std;
 
 ofstream lexLogFile;
+ofstream asmCodeFile;
 
 int main(int argc, const char* argv[]) {
     if (argc < 2) {
@@ -32,6 +33,18 @@ int main(int argc, const char* argv[]) {
         return 1;
     }
 
+    string asmCodeFileName = outputDirectory + "code.asm";
+    asmCodeFile.open(asmCodeFileName);
+    if (!asmCodeFile.is_open()) {
+        cerr << "Error opening assembly code file: " << asmCodeFileName << endl;
+        lexLogFile.close();
+        return 1;
+    }
+
+    asmCodeFile << ".model small\n"
+                << ".stack 100h\n\n"
+                << ".data ; data definition goes here\n";
+
     ANTLRInputStream input(inputFile);
     C8086Lexer lexer(&input);
     CommonTokenStream tokens(&lexer);
@@ -42,6 +55,7 @@ int main(int argc, const char* argv[]) {
 
     inputFile.close();
     lexLogFile.close();
-    cout << "Parsing and visiting completed." << endl;
+    asmCodeFile.close();
+    cout << "Parsing completed." << endl;
     return 0;
 }

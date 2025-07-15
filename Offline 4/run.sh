@@ -14,6 +14,6 @@ java -Xmx500M -cp "$ANTLR_JAR:." org.antlr.v4.Tool -Dlanguage=Cpp C8086Parser.g4
 
 # === Compile ===
 g++ -std=c++17 -I"$INCLUDE_DIR" -c C8086Lexer.cpp C8086Parser.cpp $SRC_FILES
-g++ -std=c++17 C8086Lexer.o C8086Parser.o 2105120_main.o C8086Visitor.o -L"$LIB_DIR" -lantlr4-runtime -o 2105120_main.out -pthread
+g++ -std=c++17 C8086Lexer.o C8086Parser.o 2105120_main.o -L"$LIB_DIR" -lantlr4-runtime -o 2105120_main.out -pthread
 
 LD_LIBRARY_PATH=/usr/local/lib ./2105120_main.out "$1"

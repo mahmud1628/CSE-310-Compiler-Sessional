@@ -4,12 +4,14 @@
 #include "antlr4-runtime.h"
 #include "C8086Lexer.h"
 #include "C8086Parser.h"
+#include "2105120_SymbolTable.hpp"
 
 using namespace antlr4;
 using namespace std;
 
 ofstream lexLogFile;
 ofstream asmCodeFile;
+SymbolTable symbolTable(7, "sdbm"); // Initialize symbol table with 7 buckets and sdbm hash function
 
 int main(int argc, const char* argv[]) {
     if (argc < 2) {

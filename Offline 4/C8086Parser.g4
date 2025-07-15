@@ -8,8 +8,10 @@ options {
 	#include <iostream>
 	#include <fstream>
 	#include "C8086Lexer.h"
+	#include "2105120_SymbolTable.hpp"
 
 	extern std::ofstream asmCodeFile;
+	extern SymbolTable symbolTable;
 }
 
 @parser::members {

@@ -154,4 +154,11 @@ class SymbolTable {
             //result += "\n";
             return result;
         }
+
+        string getCurrentScopeId() {
+            if(currentScope != nullptr) {
+                return currentScope->getId();
+            }
+            return "0"; // no current scope
+        }
 };

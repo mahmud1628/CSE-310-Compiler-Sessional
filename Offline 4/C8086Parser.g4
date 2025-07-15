@@ -53,7 +53,17 @@ compound_statement : LCURL statements RCURL
  		           | LCURL RCURL
  		           ;
  		    
-var_declaration : type_specifier declaration_list SEMICOLON
+var_declaration 
+				: type_specifier dl=declaration_list SEMICOLON
+				{
+					if(symbolTable.getCurrentScopeId() == "1") // global scope
+					{
+						for(auto s : $dl.variableNames)
+						{
+							writeIntoCodeFile("\t" + s + " dw ?\n");
+						}
+					}
+				}
                 ;
 
  		 
@@ -62,9 +72,17 @@ type_specifier : INT
  		       | VOID
  		       ;
  		
-declaration_list : declaration_list COMMA ID
+declaration_list returns [std::vector<std::string> variableNames]
+				 : dl=declaration_list COMMA ID
+				 {
+					$variableNames = $dl.variableNames;
+					$variableNames.push_back($ID->getText());
+				 }
  		         | declaration_list COMMA ID LTHIRD CONST_INT RTHIRD
  		         | ID
+				 {
+					$variableNames.push_back($ID->getText());
+				 }
  		         | ID LTHIRD CONST_INT RTHIRD
  		         ;
  		  

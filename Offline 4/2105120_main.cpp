@@ -12,6 +12,7 @@ using namespace std;
 ofstream lexLogFile;
 ofstream asmCodeFile;
 SymbolTable symbolTable(7, "sdbm"); // Initialize symbol table with 7 buckets and sdbm hash function
+bool codeSegmentStarted = false;
 
 int main(int argc, const char* argv[]) {
     if (argc < 2) {

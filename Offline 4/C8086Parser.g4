@@ -12,11 +12,27 @@ options {
 
 	extern std::ofstream asmCodeFile;
 	extern SymbolTable symbolTable;
+	extern bool codeSegmentStarted;
 }
 
 @parser::members {
 	void writeIntoCodeFile(const std::string code) {
 		asmCodeFile << code;
+	}
+	void writeCodeSegment() {
+		if(codeSegmentStarted == false) {
+			writeIntoCodeFile(".code\n");
+			codeSegmentStarted = true;
+		}
+	}
+	void writeProcName(const std::string procName) {
+		writeIntoCodeFile(procName + " proc\n");
+		if(procName == "main") {
+			writeIntoCodeFile("\tmov ax, @data\n\tmov ds, ax\n");
+		}
+	}
+	void writeProcEnd(const std::string procName) {
+		writeIntoCodeFile(procName + " endp\n\n");
 	}
 }
 
@@ -37,8 +53,15 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
 		        | type_specifier ID LPAREN RPAREN SEMICOLON
 		        ;
 		 
-func_definition : type_specifier ID LPAREN parameter_list RPAREN compound_statement
-		        | type_specifier ID LPAREN RPAREN compound_statement
+func_definition 
+				: type_specifier {writeCodeSegment();} ID {writeProcName($ID->getText());} LPAREN {symbolTable.enterScope();} parameter_list RPAREN compound_statement 
+				{
+					writeProcEnd($ID->getText());
+				}
+		        | type_specifier {writeCodeSegment();} ID {writeProcName($ID->getText());} LPAREN {symbolTable.enterScope();} RPAREN compound_statement
+				{
+					writeProcEnd($ID->getText());
+				}
  		        ;				
 
 
@@ -61,6 +84,7 @@ var_declaration
 						for(auto s : $dl.variableNames)
 						{
 							writeIntoCodeFile("\t" + s + " dw ?\n");
+							symbolTable.insert(s, "global");
 						}
 					}
 				}

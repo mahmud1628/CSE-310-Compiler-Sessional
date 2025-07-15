@@ -15,6 +15,7 @@ class SymbolInfo {
     public:
         SymbolInfo(string name, string type, SymbolInfo * next = nullptr) : name(name), type(type), next(next) {}
 
+
         ~SymbolInfo() {
             if(next != nullptr) {
                 delete next;

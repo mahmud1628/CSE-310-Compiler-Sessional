@@ -13,6 +13,7 @@ options {
 	extern std::ofstream asmCodeFile;
 	extern SymbolTable symbolTable;
 	extern bool codeSegmentStarted;
+	extern int label_count;
 }
 
 @parser::members {
@@ -37,6 +38,38 @@ options {
 			writeIntoCodeFile("\tmov ah, 4ch\n\tint 21h\n");
 		}
 		writeIntoCodeFile(procName + " endp\n\n");
+	}
+
+	void writeLabel()
+	{
+		writeIntoCodeFile("L" + std::to_string(label_count) + ":\n");
+		label_count++;
+	}
+
+	void writeJumpConditionByRelop(const std::string optr)
+	{
+		if(optr == "<=")
+		{
+			writeIntoCodeFile("\tjnle L" + std::to_string(label_count) + "\n");
+		}
+		else if(optr == "!=")
+		{
+			writeIntoCodeFile("\tje L" + std::to_string(label_count) + "\n");
+		}
+	}
+
+	void writeJumpConditionByLogicop(const std::string optr)
+	{
+		if(optr == "||")
+		{
+			writeIntoCodeFile("\tor bx,ax\n");
+			writeIntoCodeFile("\tjz L" + std::to_string(label_count) + "\n");
+		}
+		else if(optr == "&&")
+		{
+			writeIntoCodeFile("\tand bx,ax\n");
+			writeIntoCodeFile("\tjz L" + std::to_string(label_count) + "\n");
+		}
 	}
 }
 
@@ -85,6 +118,7 @@ compound_statement : LCURL statements RCURL
 var_declaration 
 				: type_specifier dl=declaration_list SEMICOLON
 				{
+					writeIntoCodeFile("\t; line " + std::to_string($SEMICOLON->getLine())+ "\n");
 					if(symbolTable.getCurrentScopeId() == "1") // global scope
 					{
 						for(auto s : $dl.variableNames)
@@ -138,12 +172,18 @@ statement
 	      | WHILE LPAREN expression RPAREN statement
 	      | PRINTLN LPAREN ID RPAREN SEMICOLON
 		  {
+			writeIntoCodeFile("\t; line " + std::to_string($ID->getLine()) + "\n");
 			SymbolInfo * info = symbolTable.lookup($ID->getText());
 			if(info->getType() == "global")
 			{
 				writeIntoCodeFile("\tmov ax, " + $ID->getText() + "\n");
 			}
-			writeIntoCodeFile("\tcall print_output\n");
+			else if(info->getType() == "local")
+			{
+				std::string varName = "[bp - " + std::to_string(info->getStackOffset()) + "]";
+				writeIntoCodeFile("\tmov ax, " + varName + "\n");
+			}
+			writeIntoCodeFile("\tcall print_output\n\tcall new_line\n");
 		  }
 	      | RETURN expression SEMICOLON
 	      ;
@@ -177,36 +217,103 @@ variable returns [std::string varName]
 	        ;
 			
 logic_expression : rel_expression 	
-		         | rel_expression LOGICOP rel_expression 	
+		         | rel_expression LOGICOP {writeIntoCodeFile("\tpush ax\n");} rel_expression 
+				 {
+					writeIntoCodeFile("\tpop bx\n");
+					writeJumpConditionByLogicop($LOGICOP->getText());
+					writeIntoCodeFile("\tmov ax, 1\n");
+					writeIntoCodeFile("\tjmp L" + std::to_string(label_count + 1) + "\n");
+					writeLabel();
+					writeIntoCodeFile("\tmov ax, 0\n");
+					writeLabel();
+				 }	
 		         ;
 			
 rel_expression	: simple_expression 
-		        | simple_expression RELOP simple_expression	
+		        | simple_expression RELOP {writeIntoCodeFile("\tpush ax\n");} simple_expression	
+				{
+					writeIntoCodeFile("\tpop bx\n");
+					writeIntoCodeFile("\tcmp bx, ax\n");
+					writeJumpConditionByRelop($RELOP->getText());
+					writeIntoCodeFile("\tmov ax, 1\n");
+					writeIntoCodeFile("\tjmp L" + std::to_string(label_count + 1) + "\n");
+					writeLabel();
+					writeIntoCodeFile("\tmov ax, 0\n");
+					writeLabel();
+				}
 		        ;
 				
-simple_expression : term 
-		          | simple_expression ADDOP term 
+simple_expression 
+				  : term 
+		          | simple_expression ADDOP {writeIntoCodeFile("\tpush ax\n");} term 
+				  {
+					writeIntoCodeFile("\tpop bx\n");
+					if($ADDOP->getText() == "+")
+					{
+						writeIntoCodeFile("\tadd bx, ax\n");
+					}
+					else 
+					{
+						writeIntoCodeFile("\tsub bx, ax\n");
+					}
+					writeIntoCodeFile("\tmov ax, bx\n");
+				  }
 		          ;
 					
-term :	unary_expression
-     |  term MULOP unary_expression
+term 
+	 :	unary_expression
+     |  term MULOP {writeIntoCodeFile("\tpush ax\n");} unary_expression
+	 {
+		writeIntoCodeFile("\tpop bx\n");
+		writeIntoCodeFile("\txchg ax,bx\n");
+		if($MULOP->getText() == "*")
+		{
+			writeIntoCodeFile("\tmul bx\n");
+		}
+		else if($MULOP->getText() == "/")
+		{
+			writeIntoCodeFile("\tmov dx,0h\n");
+			writeIntoCodeFile("\tdiv bx\n");
+		}
+		else 
+		{
+			writeIntoCodeFile("\tmov dx,0h\n");
+			writeIntoCodeFile("\tdiv bx\n");	
+			writeIntoCodeFile("\tmov ax, dx\n");		
+		}
+	 }
      ;
 
-unary_expression : ADDOP unary_expression  
+unary_expression 
+				: ADDOP unary_expression  
+				{
+					if($ADDOP->getText() == "-")
+					{
+						writeIntoCodeFile("\tneg ax\n");
+					}
+				}
 		         | NOT unary_expression 
 		         | factor 
 		         ;
 	
 factor	
-		: variable 
+		: v=variable 
+		{
+			writeIntoCodeFile("\tmov ax, " + $v.varName + " ; line " + std::to_string($v.start->getLine()) + "\n");
+		}
 	    | ID LPAREN argument_list RPAREN
 	    | LPAREN expression RPAREN
         | CONST_INT 
 		{
-			writeIntoCodeFile("\tmov ax, " + $CONST_INT->getText() + "\n");
+			writeIntoCodeFile("\tmov ax, " + $CONST_INT->getText() + " ; line " + std::to_string($CONST_INT->getLine()) + "\n");
 		}
         | CONST_FLOAT
-        | variable INCOP 
+        | v=variable INCOP 
+		{
+			writeIntoCodeFile("\tmov ax, " + $v.varName + " ; line " + std::to_string($v.start->getLine()) + "\n");
+			writeIntoCodeFile("\tinc ax\n");
+			writeIntoCodeFile("\tmov " + $v.varName + ", ax\n");
+		}
         | variable DECOP
         ;
 	

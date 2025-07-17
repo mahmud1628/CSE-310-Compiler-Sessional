@@ -8,18 +8,25 @@ class SymbolInfo {
     string name, type;
     SymbolInfo * next;
 
+    int stack_offset;
+
     string func_return_type;
     bool declared = false; // flag to check if the symbol is declared
     vector<pair<string, string>> func_params; // vector of pairs to store parameter name and type
 
     public:
         SymbolInfo(string name, string type, SymbolInfo * next = nullptr) : name(name), type(type), next(next) {}
-
+        SymbolInfo(string name, string type, int stack_offset, SymbolInfo * next = nullptr) 
+            : name(name), type(type), next(next), stack_offset(stack_offset) {}
 
         ~SymbolInfo() {
             if(next != nullptr) {
                 delete next;
             }
+        }
+
+        int getStackOffset() const {
+            return stack_offset;
         }
 
         string getName() const {

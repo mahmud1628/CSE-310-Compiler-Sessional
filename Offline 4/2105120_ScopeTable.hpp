@@ -83,7 +83,7 @@ class ScopeTable {
             return hash % num_buckets;
         }
 
-        bool insert(string& name, string& type, bool verbose = false) {
+        bool insert(string& name, string& type, int stack_offset = -1, bool verbose = false) {
             SymbolInfo * exists = lookup(name);
             if(exists != nullptr) {
                 if(verbose) {
@@ -93,7 +93,7 @@ class ScopeTable {
             }
             int index = getBucketIndex(name);
             int position = 1;
-            SymbolInfo * new_symbol = new SymbolInfo(name, type);
+            SymbolInfo * new_symbol = new SymbolInfo(name, type, stack_offset);
             if(hash_table[index] == nullptr) {
                 hash_table[index] = new_symbol;
             } else {

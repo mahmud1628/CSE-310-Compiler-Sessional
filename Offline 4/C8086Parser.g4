@@ -28,10 +28,14 @@ options {
 	void writeProcName(const std::string procName) {
 		writeIntoCodeFile(procName + " proc\n");
 		if(procName == "main") {
-			writeIntoCodeFile("\tmov ax, @data\n\tmov ds, ax\n");
+			writeIntoCodeFile("\tmov ax, @data\n\tmov ds, ax\n\n");
 		}
 	}
 	void writeProcEnd(const std::string procName) {
+		if(procName == "main")
+		{
+			writeIntoCodeFile("\tmov ah, 4ch\n\tint 21h\n");
+		}
 		writeIntoCodeFile(procName + " endp\n\n");
 	}
 }
@@ -54,12 +58,14 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
 		        ;
 		 
 func_definition 
-				: type_specifier {writeCodeSegment();} ID {writeProcName($ID->getText());} LPAREN {symbolTable.enterScope();} parameter_list RPAREN compound_statement 
+				: type_specifier {writeCodeSegment();} ID {writeProcName($ID->getText());} LPAREN {symbolTable.enterScope(); writeIntoCodeFile("\tmov bp, sp\n");} parameter_list RPAREN compound_statement 
 				{
+					writeIntoCodeFile("\tmov sp, bp\n");
 					writeProcEnd($ID->getText());
 				}
-		        | type_specifier {writeCodeSegment();} ID {writeProcName($ID->getText());} LPAREN {symbolTable.enterScope();} RPAREN compound_statement
+		        | type_specifier {writeCodeSegment();} ID {writeProcName($ID->getText());} LPAREN {symbolTable.enterScope(); writeIntoCodeFile("\tmov bp, sp\n");} RPAREN compound_statement
 				{
+					writeIntoCodeFile("\tmov sp, bp\n");
 					writeProcEnd($ID->getText());
 				}
  		        ;				
@@ -83,9 +89,17 @@ var_declaration
 					{
 						for(auto s : $dl.variableNames)
 						{
-							writeIntoCodeFile("\t" + s + " dw ?\n");
+							writeIntoCodeFile("\t" + s + " dw 0h\n");
 							symbolTable.insert(s, "global");
 						}
+					}
+					else // local scope
+					{
+						for(int i = 1; i <= $dl.variableNames.size();i++)
+						{
+							symbolTable.insert($dl.variableNames[i - 1], "local", i * 2);
+						}
+						writeIntoCodeFile("\tsub sp, " + std::to_string($dl.variableNames.size() * 2) + "\n");
 					}
 				}
                 ;
@@ -114,7 +128,8 @@ statements : statement
 	       | statements statement
 	       ;
 	   
-statement : var_declaration
+statement 
+		  : var_declaration
 	      | expression_statement
 	      | compound_statement
 	      | FOR LPAREN expression_statement expression_statement expression RPAREN statement
@@ -122,6 +137,14 @@ statement : var_declaration
 	      | IF LPAREN expression RPAREN statement ELSE statement
 	      | WHILE LPAREN expression RPAREN statement
 	      | PRINTLN LPAREN ID RPAREN SEMICOLON
+		  {
+			SymbolInfo * info = symbolTable.lookup($ID->getText());
+			if(info->getType() == "global")
+			{
+				writeIntoCodeFile("\tmov ax, " + $ID->getText() + "\n");
+			}
+			writeIntoCodeFile("\tcall print_output\n");
+		  }
 	      | RETURN expression SEMICOLON
 	      ;
 	  
@@ -129,12 +152,28 @@ expression_statement 	: SEMICOLON
 			            | expression SEMICOLON 
 			            ;
 	  
-variable : ID 		
+variable returns [std::string varName]
+		 : ID
+		 {
+			SymbolInfo * info = symbolTable.lookup($ID->getText());
+			if(info->getType() == "global")
+			{
+				$varName = $ID->getText();
+			}
+			else
+			{
+				$varName = "[bp - " + std::to_string(info->getStackOffset()) + "]";
+			}
+		 } 		
 	     | ID LTHIRD expression RTHIRD 
 	     ;
 	 
- expression : logic_expression	
-	        | variable ASSIGNOP logic_expression 	
+ expression 
+ 			: logic_expression	
+	        | v=variable ASSIGNOP logic_expression 
+			{
+				writeIntoCodeFile("\tmov " + $v.varName + ", ax\n");
+			}	
 	        ;
 			
 logic_expression : rel_expression 	
@@ -158,10 +197,14 @@ unary_expression : ADDOP unary_expression
 		         | factor 
 		         ;
 	
-factor	: variable 
+factor	
+		: variable 
 	    | ID LPAREN argument_list RPAREN
 	    | LPAREN expression RPAREN
         | CONST_INT 
+		{
+			writeIntoCodeFile("\tmov ax, " + $CONST_INT->getText() + "\n");
+		}
         | CONST_FLOAT
         | variable INCOP 
         | variable DECOP

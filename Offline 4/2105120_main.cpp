@@ -46,7 +46,8 @@ int main(int argc, const char* argv[]) {
 
     asmCodeFile << ".model small\n"
                 << ".stack 100h\n\n"
-                << ".data ; data definition goes here\n";
+                << ".data ; data definition goes here\n"
+                << "\tnumber db \"00000$\"\n";
 
     ANTLRInputStream input(inputFile);
     C8086Lexer lexer(&input);
@@ -55,6 +56,19 @@ int main(int argc, const char* argv[]) {
     parser.removeErrorListeners();
 
     parser.start();
+
+    {
+        ifstream lib("printProc.lib");
+        if (lib) {
+            asmCodeFile << "\n; ===== runtime print support =====\n";
+            asmCodeFile << lib.rdbuf();
+        } else {
+            std::cerr << "Warning: could not open printProc.lib; continuing without it.\n";
+        }
+    }
+
+
+    asmCodeFile << "end main\n";
 
     inputFile.close();
     lexLogFile.close();

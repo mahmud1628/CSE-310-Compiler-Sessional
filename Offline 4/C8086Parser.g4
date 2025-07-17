@@ -56,6 +56,18 @@ options {
 		{
 			writeIntoCodeFile("\tje L" + std::to_string(label_count) + "\n");
 		}
+		else if(optr == "==")
+		{
+			writeIntoCodeFile("\tjne L" + std::to_string(label_count) + "\n");
+		}
+		else if(optr == "<")
+		{
+			writeIntoCodeFile("\tjge L" + std::to_string(label_count) + "\n");
+		}
+		else if(optr == ">") 
+		{
+			writeIntoCodeFile("\tjle L" + std::to_string(label_count) + "\n");
+		}
 	}
 
 	void writeJumpConditionByLogicop(const std::string optr)
@@ -167,8 +179,32 @@ statement
 	      | expression_statement
 	      | compound_statement
 	      | FOR LPAREN expression_statement expression_statement expression RPAREN statement
-	      | IF LPAREN expression RPAREN statement
-	      | IF LPAREN expression RPAREN statement ELSE statement
+	      | IF LPAREN expression RPAREN
+		  {
+			int falseLabel = label_count++;
+			writeIntoCodeFile("\tcmp ax, 1\n");
+			writeIntoCodeFile("\tjne L" + std::to_string(falseLabel) + "\n");
+		  }
+		  statement
+		  {
+			writeIntoCodeFile("L" + std::to_string(falseLabel) + ":\n"); // use the same falseLabel here
+		  }
+		  | IF LPAREN expression RPAREN
+		  {
+			int falseLabel = label_count++;
+			int endLabel = label_count++;
+			writeIntoCodeFile("\tcmp ax, 1\n");
+			writeIntoCodeFile("\tjne L" + std::to_string(falseLabel) + "\n");
+		  }
+		  statement
+		  {
+			writeIntoCodeFile("\tjmp L" + std::to_string(endLabel) + "\n");
+			writeIntoCodeFile("L" + std::to_string(falseLabel) + ":\n");
+		  }
+		  ELSE statement
+		  {
+			writeIntoCodeFile("L" + std::to_string(endLabel) + ":\n");
+		  }
 	      | WHILE LPAREN expression RPAREN statement
 	      | PRINTLN LPAREN ID RPAREN SEMICOLON
 		  {

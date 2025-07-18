@@ -69,20 +69,6 @@ options {
 			writeIntoCodeFile("\tjle L" + std::to_string(label_count) + "\n");
 		}
 	}
-
-	void writeJumpConditionByLogicop(const std::string optr)
-	{
-		if(optr == "||")
-		{
-			writeIntoCodeFile("\tor bx,ax\n");
-			writeIntoCodeFile("\tjz L" + std::to_string(label_count) + "\n");
-		}
-		else if(optr == "&&")
-		{
-			writeIntoCodeFile("\tand bx,ax\n");
-			writeIntoCodeFile("\tjz L" + std::to_string(label_count) + "\n");
-		}
-	}
 }
 
 
@@ -253,15 +239,45 @@ variable returns [std::string varName]
 	        ;
 			
 logic_expression : rel_expression 	
-		         | rel_expression LOGICOP {writeIntoCodeFile("\tpush ax\n");} rel_expression 
+		         | rel_expression LOGICOP 
 				 {
-					writeIntoCodeFile("\tpop bx\n");
-					writeJumpConditionByLogicop($LOGICOP->getText());
-					writeIntoCodeFile("\tmov ax, 1\n");
-					writeIntoCodeFile("\tjmp L" + std::to_string(label_count + 1) + "\n");
-					writeLabel();
-					writeIntoCodeFile("\tmov ax, 0\n");
-					writeLabel();
+					int shortLabel = label_count++;
+					int endLabel = label_count++;
+					std::string optr = $LOGICOP->getText();
+
+					if(optr == "||")
+					{
+						writeIntoCodeFile("\tcmp ax, 0\n");
+						writeIntoCodeFile("\tjne L" + std::to_string(shortLabel) + "\n");
+					}
+					else if(optr == "&&")
+					{
+						writeIntoCodeFile("\tcmp ax, 0\n");
+						writeIntoCodeFile("\tje L" + std::to_string(shortLabel) + "\n");
+					}
+				 } 
+				 rel_expression 
+				 {
+					if(optr == "||") 
+					{
+						writeIntoCodeFile("\tcmp ax, 0\n");
+						writeIntoCodeFile("\tjne L" + std::to_string(shortLabel) + "\n");
+						writeIntoCodeFile("\tmov ax, 0\n");
+						writeIntoCodeFile("\tjmp L" + std::to_string(endLabel) + "\n");
+						writeIntoCodeFile("L" + std::to_string(shortLabel) + ":\n");
+						writeIntoCodeFile("\tmov ax, 1\n");
+						writeIntoCodeFile("L" + std::to_string(endLabel) + ":\n");
+					} 
+					else if(optr == "&&") 
+					{
+						writeIntoCodeFile("\tcmp ax, 0\n");
+						writeIntoCodeFile("\tje L" + std::to_string(shortLabel) + "\n");
+						writeIntoCodeFile("\tmov ax, 1\n");
+						writeIntoCodeFile("\tjmp L" + std::to_string(endLabel) + "\n");
+						writeIntoCodeFile("L" + std::to_string(shortLabel) + ":\n");
+						writeIntoCodeFile("\tmov ax, 0\n");
+						writeIntoCodeFile("L" + std::to_string(endLabel) + ":\n");
+					}
 				 }	
 		         ;
 			

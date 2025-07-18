@@ -215,7 +215,22 @@ statement
 		  {
 			writeIntoCodeFile("L" + std::to_string(endLabel) + ":\n");
 		  }
-	      | WHILE LPAREN expression RPAREN statement
+	      | WHILE LPAREN
+		  {
+			int conditionLabel = label_count++;
+			int endLabel = label_count++;
+			writeIntoCodeFile("L" + std::to_string(conditionLabel) + ":\n");
+		  } 
+		  expression
+		  {
+			writeIntoCodeFile("\tcmp ax, 0\n");
+			writeIntoCodeFile("\tje L" + std::to_string(endLabel) + "\n");
+		  } 
+		  RPAREN statement
+		  {
+			writeIntoCodeFile("\tjmp L" + std::to_string(conditionLabel) + "\n");
+			writeIntoCodeFile("L" + std::to_string(endLabel) + ":\n");
+		  }
 	      | PRINTLN LPAREN ID RPAREN SEMICOLON
 		  {
 			writeIntoCodeFile("\t; line " + std::to_string($ID->getLine()) + "\n");
@@ -390,7 +405,12 @@ factor
 			writeIntoCodeFile("\tinc ax\n");
 			writeIntoCodeFile("\tmov " + $v.varName + ", ax\n");
 		}
-        | variable DECOP
+        | v=variable DECOP
+		{
+			writeIntoCodeFile("\tmov ax, " + $v.varName + " ; line " + std::to_string($v.start->getLine()) + "\n");
+			writeIntoCodeFile("\tdec ax\n");
+			writeIntoCodeFile("\tmov " + $v.varName + ", ax\n");			
+		}
         ;
 	
 argument_list : arguments

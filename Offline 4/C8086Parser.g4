@@ -52,34 +52,21 @@ options {
 		currentFunctions.pop();
 	}
 
-	void writeLabel()
+	void writeLabel(std::string label)
 	{
-		writeIntoCodeFile("L" + std::to_string(label_count) + ":\n");
-		label_count++;
+		writeIntoCodeFile("L" + label + ":\n");
 	}
 
-	void writeJumpConditionByRelop(const std::string optr)
+	void writeJumpConditionByRelop(const std::string optr, int falseLabel)
 	{
-		if(optr == "<=")
-		{
-			writeIntoCodeFile("\tjnle L" + std::to_string(label_count) + "\n");
-		}
-		else if(optr == "!=")
-		{
-			writeIntoCodeFile("\tje L" + std::to_string(label_count) + "\n");
-		}
-		else if(optr == "==")
-		{
-			writeIntoCodeFile("\tjne L" + std::to_string(label_count) + "\n");
-		}
-		else if(optr == "<")
-		{
-			writeIntoCodeFile("\tjge L" + std::to_string(label_count) + "\n");
-		}
-		else if(optr == ">") 
-		{
-			writeIntoCodeFile("\tjle L" + std::to_string(label_count) + "\n");
-		}
+		std::string jmpStr;
+		if(optr == "<=") jmpStr = "jnle";
+		else if(optr == "!=") jmpStr = "je";
+		else if(optr == "==") jmpStr = "jne";
+		else if(optr == "<") jmpStr = "jge";
+		else if(optr == ">") jmpStr = "jle";
+
+		writeIntoCodeFile("\t" + jmpStr + " L" + std::to_string(falseLabel) + "\n");
 	}
 }
 
@@ -214,24 +201,24 @@ statement
 			int endLabel = label_count++;
 			int statementLabel = label_count++;
 			int incrementLabel = label_count++;
-			writeIntoCodeFile("L" + std::to_string(conditionLabel) + ":\n");
+			writeLabel(std::to_string(conditionLabel));
 		  } 
 		  expression_statement
 		  {
 			writeIntoCodeFile("\tcmp ax, 0\n");
 			writeIntoCodeFile("\tje L" + std::to_string(endLabel) + "\n");
 			writeIntoCodeFile("\tjne L" + std::to_string(statementLabel) + "\n");
-			writeIntoCodeFile("L" + std::to_string(incrementLabel) + ":\n");
+			writeLabel(std::to_string(incrementLabel));
 		  } 
 		  expression
 		  {
 			writeIntoCodeFile("\tjmp L" + std::to_string(conditionLabel) + "\n");
-			writeIntoCodeFile("L" + std::to_string(statementLabel) + ":\n");
+			writeLabel(std::to_string(statementLabel));
 		  } 
 		  RPAREN statement
 		  {
 			writeIntoCodeFile("\tjmp L" + std::to_string(incrementLabel) + "\n");
-			writeIntoCodeFile("L" + std::to_string(endLabel) + ":\n");
+			writeLabel(std::to_string(endLabel));
 		  }
 	      | IF LPAREN expression RPAREN
 		  {
@@ -241,7 +228,7 @@ statement
 		  }
 		  statement
 		  {
-			writeIntoCodeFile("L" + std::to_string(falseLabel) + ":\n"); // use the same falseLabel here
+			writeLabel(std::to_string(falseLabel)); // use the same falseLabel here
 		  }
 		  | IF LPAREN expression RPAREN
 		  {
@@ -253,17 +240,17 @@ statement
 		  statement
 		  {
 			writeIntoCodeFile("\tjmp L" + std::to_string(endLabel) + "\n");
-			writeIntoCodeFile("L" + std::to_string(falseLabel) + ":\n");
+			writeLabel(std::to_string(falseLabel));
 		  }
 		  ELSE statement
 		  {
-			writeIntoCodeFile("L" + std::to_string(endLabel) + ":\n");
+			writeLabel(std::to_string(endLabel));
 		  }
 	      | WHILE LPAREN
 		  {
 			int conditionLabel = label_count++;
 			int endLabel = label_count++;
-			writeIntoCodeFile("L" + std::to_string(conditionLabel) + ":\n");
+			writeLabel(std::to_string(conditionLabel));
 		  } 
 		  expression
 		  {
@@ -273,7 +260,7 @@ statement
 		  RPAREN statement
 		  {
 			writeIntoCodeFile("\tjmp L" + std::to_string(conditionLabel) + "\n");
-			writeIntoCodeFile("L" + std::to_string(endLabel) + ":\n");
+			writeLabel(std::to_string(endLabel));
 		  }
 	      | PRINTLN LPAREN ID RPAREN SEMICOLON
 		  {
@@ -355,9 +342,9 @@ logic_expression
 						writeIntoCodeFile("\tjne L" + std::to_string(shortLabel) + "\n");
 						writeIntoCodeFile("\tmov ax, 0\n");
 						writeIntoCodeFile("\tjmp L" + std::to_string(endLabel) + "\n");
-						writeIntoCodeFile("L" + std::to_string(shortLabel) + ":\n");
+						writeLabel(std::to_string(shortLabel));
 						writeIntoCodeFile("\tmov ax, 1\n");
-						writeIntoCodeFile("L" + std::to_string(endLabel) + ":\n");
+						writeLabel(std::to_string(endLabel));
 					} 
 					else if(optr == "&&") 
 					{
@@ -365,9 +352,9 @@ logic_expression
 						writeIntoCodeFile("\tje L" + std::to_string(shortLabel) + "\n");
 						writeIntoCodeFile("\tmov ax, 1\n");
 						writeIntoCodeFile("\tjmp L" + std::to_string(endLabel) + "\n");
-						writeIntoCodeFile("L" + std::to_string(shortLabel) + ":\n");
+						writeLabel(std::to_string(shortLabel));
 						writeIntoCodeFile("\tmov ax, 0\n");
-						writeIntoCodeFile("L" + std::to_string(endLabel) + ":\n");
+						writeLabel(std::to_string(endLabel));
 					}
 				 }	
 		         ;
@@ -378,12 +365,14 @@ rel_expression
 				{
 					writeIntoCodeFile("\tpop bx\n");
 					writeIntoCodeFile("\tcmp bx, ax\n");
-					writeJumpConditionByRelop($RELOP->getText());
+					int falseLabel = label_count++;
+					int endLabel = label_count++;
+					writeJumpConditionByRelop($RELOP->getText(), falseLabel);
 					writeIntoCodeFile("\tmov ax, 1\n");
-					writeIntoCodeFile("\tjmp L" + std::to_string(label_count + 1) + "\n");
-					writeLabel();
+					writeIntoCodeFile("\tjmp L" + std::to_string(endLabel) + "\n");
+					writeLabel(std::to_string(falseLabel));
 					writeIntoCodeFile("\tmov ax, 0\n");
-					writeLabel();
+					writeLabel(std::to_string(endLabel));
 				}
 		        ;
 				

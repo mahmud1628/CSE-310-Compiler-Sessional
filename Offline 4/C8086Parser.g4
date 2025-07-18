@@ -118,7 +118,7 @@ func_definition
 					int paramSize = $pl.paramNames.size();
 					for(int i = 0; i < paramSize;i++)
 					{
-						symbolTable.insert($pl.paramNames[i], "param", 4 + i * 2);
+						symbolTable.insert($pl.paramNames[i], "param", 4 + (paramSize - i - 1) * 2);
 					}
 				}
 				RPAREN compound_statement 
@@ -328,11 +328,8 @@ variable returns [std::string varName]
 			}	
 	        ;
 			
-logic_expression returns [std::string argInLE]
-				 : re=rel_expression 
-				 {
-					$argInLE = $re.argInRE;
-				 }	
+logic_expression
+				 : rel_expression 
 		         | rel_expression LOGICOP 
 				 {
 					int shortLabel = label_count++;
@@ -375,11 +372,8 @@ logic_expression returns [std::string argInLE]
 				 }	
 		         ;
 			
-rel_expression	returns [std::string argInRE]
-				: se=simple_expression 
-				{
-					$argInRE = $se.argInSE;
-				}
+rel_expression
+				: simple_expression 
 		        | simple_expression RELOP {writeIntoCodeFile("\tpush ax\n");} simple_expression	
 				{
 					writeIntoCodeFile("\tpop bx\n");
@@ -393,11 +387,8 @@ rel_expression	returns [std::string argInRE]
 				}
 		        ;
 				
-simple_expression returns [std::string argInSE]
-				  : t=term 
-				  {
-					$argInSE = $t.argInTerm;
-				  }
+simple_expression
+				  : term 
 		          | simple_expression ADDOP {writeIntoCodeFile("\tpush ax\n");} term 
 				  {
 					writeIntoCodeFile("\tpop bx\n");
@@ -410,15 +401,11 @@ simple_expression returns [std::string argInSE]
 						writeIntoCodeFile("\tsub bx, ax\n");
 					}
 					writeIntoCodeFile("\tmov ax, bx\n");
-					$argInSE = "ax";
 				  }
 		          ;
 					
-term returns [std::string argInTerm]
-	 :	ue=unary_expression
-	 {
-		$argInTerm = $ue.argInUE;
-	 }
+term
+	 :	unary_expression
      |  term MULOP {writeIntoCodeFile("\tpush ax\n");} unary_expression
 	 {
 		writeIntoCodeFile("\tpop bx\n");
@@ -441,7 +428,7 @@ term returns [std::string argInTerm]
 	 }
      ;
 
-unary_expression returns [std::string argInUE]
+unary_expression
 				: ADDOP unary_expression  
 				{
 					if($ADDOP->getText() == "-")
@@ -450,25 +437,16 @@ unary_expression returns [std::string argInUE]
 					}
 				}
 		         | NOT unary_expression 
-		         | f=factor 
-				 {
-					$argInUE = $f.argInFactor;
-				 }
+		         | factor 
 		         ;
 	
-factor	returns [std::string argInFactor]
+factor
 		: v=variable 
 		{
-			$argInFactor = $v.varName;
 			writeIntoCodeFile("\tmov ax, " + $v.varName + " ; line " + std::to_string($v.start->getLine()) + "\n");
 		}
-	    | ID LPAREN al=argument_list RPAREN
+	    | ID LPAREN argument_list RPAREN
 		{
-			for(int i = $al.argNames.size() - 1; i >= 0;i--)
-			{
-				writeIntoCodeFile("\tmov ax, " + $al.argNames[i] + "\n");
-				writeIntoCodeFile("\tpush ax\n");
-			}
 			std::string funcName = $ID->getText();
 			writeIntoCodeFile("\tcall " + funcName + "\n");
 		}
@@ -494,22 +472,18 @@ factor	returns [std::string argInFactor]
 		}
         ;
 	
-argument_list returns [std::vector<std::string> argNames]
-			  : a=arguments
-			  {
-				$argNames = $a.args;
-			  }
+argument_list
+			  : arguments
 			  |
 			  ;
 	
-arguments returns [std::vector<std::string> args]
-		  : a=arguments COMMA le=logic_expression
+arguments
+		  : arguments COMMA logic_expression
 		  {
-			$args = $a.args;
-			$args.push_back($le.argInLE);
+			writeIntoCodeFile("\tpush ax\n");
 		  }
-	      | le=logic_expression
+	      | logic_expression
 		  {
-			$args.push_back($le.argInLE); // TODO: Argument passing only works for variable now. If expression or constatnt is passed, it won't work. need to solve the issue.
+			writeIntoCodeFile("\tpush ax\n");
 		  }
 	      ;

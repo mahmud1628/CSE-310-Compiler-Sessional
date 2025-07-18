@@ -164,7 +164,31 @@ statement
 		  : var_declaration
 	      | expression_statement
 	      | compound_statement
-	      | FOR LPAREN expression_statement expression_statement expression RPAREN statement
+	      | FOR LPAREN expression_statement 
+		  {
+			int conditionLabel = label_count++;
+			int endLabel = label_count++;
+			int statementLabel = label_count++;
+			int incrementLabel = label_count++;
+			writeIntoCodeFile("L" + std::to_string(conditionLabel) + ":\n");
+		  } 
+		  expression_statement
+		  {
+			writeIntoCodeFile("\tcmp ax, 0\n");
+			writeIntoCodeFile("\tje L" + std::to_string(endLabel) + "\n");
+			writeIntoCodeFile("\tjne L" + std::to_string(statementLabel) + "\n");
+			writeIntoCodeFile("L" + std::to_string(incrementLabel) + ":\n");
+		  } 
+		  expression
+		  {
+			writeIntoCodeFile("\tjmp L" + std::to_string(conditionLabel) + "\n");
+			writeIntoCodeFile("L" + std::to_string(statementLabel) + ":\n");
+		  } 
+		  RPAREN statement
+		  {
+			writeIntoCodeFile("\tjmp L" + std::to_string(incrementLabel) + "\n");
+			writeIntoCodeFile("L" + std::to_string(endLabel) + ":\n");
+		  }
 	      | IF LPAREN expression RPAREN
 		  {
 			int falseLabel = label_count++;

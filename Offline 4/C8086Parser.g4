@@ -404,12 +404,14 @@ factor
 			writeIntoCodeFile("\tmov ax, " + $v.varName + " ; line " + std::to_string($v.start->getLine()) + "\n");
 			writeIntoCodeFile("\tinc ax\n");
 			writeIntoCodeFile("\tmov " + $v.varName + ", ax\n");
+			writeIntoCodeFile("\tdec ax\n");
 		}
         | v=variable DECOP
 		{
 			writeIntoCodeFile("\tmov ax, " + $v.varName + " ; line " + std::to_string($v.start->getLine()) + "\n");
 			writeIntoCodeFile("\tdec ax\n");
-			writeIntoCodeFile("\tmov " + $v.varName + ", ax\n");			
+			writeIntoCodeFile("\tmov " + $v.varName + ", ax\n");	
+			writeIntoCodeFile("\tinc ax\n");		
 		}
         ;
 	

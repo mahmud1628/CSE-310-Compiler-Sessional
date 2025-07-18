@@ -68,6 +68,20 @@ options {
 
 		writeIntoCodeFile("\t" + jmpStr + " L" + std::to_string(falseLabel) + "\n");
 	}
+
+	void declareVariable(std::string varName, int count)
+	{
+		if(symbolTable.getCurrentScopeId() == "1") // global scope
+		{
+			writeIntoCodeFile("\t" + varName + " dw 0h\n");
+			symbolTable.insert(varName, "global");
+		}
+		else // local scope
+		{
+			writeIntoCodeFile("\tsub sp, 2\n");
+			symbolTable.insert(varName, "local", count * 2);
+		}
+	}
 }
 
 
@@ -147,23 +161,7 @@ compound_statement : LCURL {symbolTable.enterScope();} statements RCURL {symbolT
 var_declaration 
 				: type_specifier dl=declaration_list SEMICOLON
 				{
-					writeIntoCodeFile("\t; line " + std::to_string($SEMICOLON->getLine())+ "\n");
-					if(symbolTable.getCurrentScopeId() == "1") // global scope
-					{
-						for(auto s : $dl.variableNames)
-						{
-							writeIntoCodeFile("\t" + s + " dw 0h\n");
-							symbolTable.insert(s, "global");
-						}
-					}
-					else // local scope
-					{
-						for(int i = 1; i <= $dl.variableNames.size();i++)
-						{
-							symbolTable.insert($dl.variableNames[i - 1], "local", i * 2);
-						}
-						writeIntoCodeFile("\tsub sp, " + std::to_string($dl.variableNames.size() * 2) + "\n");
-					}
+
 				}
                 ;
 
@@ -173,16 +171,17 @@ type_specifier : INT
  		       | VOID
  		       ;
  		
-declaration_list returns [std::vector<std::string> variableNames]
+declaration_list returns [int count]
 				 : dl=declaration_list COMMA ID
 				 {
-					$variableNames = $dl.variableNames;
-					$variableNames.push_back($ID->getText());
+					$count = $dl.count + 1;
+					declareVariable($ID->getText(), $count);
 				 }
  		         | declaration_list COMMA ID LTHIRD CONST_INT RTHIRD
  		         | ID
 				 {
-					$variableNames.push_back($ID->getText());
+					$count = 1;
+					declareVariable($ID->getText(), $count);
 				 }
  		         | ID LTHIRD CONST_INT RTHIRD
  		         ;

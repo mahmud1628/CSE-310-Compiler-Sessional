@@ -82,6 +82,15 @@ options {
 			symbolTable.insert(varName, "local", count * 2);
 		}
 	}
+
+	void declareArray(std::string arrName, std::string size)
+	{
+		if(symbolTable.getCurrentScopeId() == "1") // global scope
+		{
+			writeIntoCodeFile("\t" + arrName + " dw " + size + " dup (0)\n");
+			symbolTable.insert(arrName, "global");
+		}
+	}
 }
 
 
@@ -178,12 +187,18 @@ declaration_list returns [int count]
 					declareVariable($ID->getText(), $count);
 				 }
  		         | declaration_list COMMA ID LTHIRD CONST_INT RTHIRD
+				 {
+					declareArray($ID->getText(), $CONST_INT->getText());					
+				 }
  		         | ID
 				 {
 					$count = 1;
 					declareVariable($ID->getText(), $count);
 				 }
  		         | ID LTHIRD CONST_INT RTHIRD
+				 {
+					declareArray($ID->getText(), $CONST_INT->getText());
+				 }
  		         ;
  		  
 statements : statement
@@ -304,6 +319,17 @@ variable returns [std::string varName]
 			}
 		 } 		
 	     | ID LTHIRD expression RTHIRD 
+		 {
+			SymbolInfo * info = symbolTable.lookup($ID->getText());
+			if(info->getType() == "global")
+			{
+				writeIntoCodeFile("\tlea si, " + $ID->getText() + "\n");
+				writeIntoCodeFile("\tmov bx, 2\n");
+				writeIntoCodeFile("\tmul bx\n");
+				writeIntoCodeFile("\tadd si, ax\n");
+				$varName = "[si]";
+			}
+		 }
 	     ;
 	 
  expression 

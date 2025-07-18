@@ -77,6 +77,6 @@ int main(int argc, const char* argv[]) {
     inputFile.close();
     lexLogFile.close();
     asmCodeFile.close();
-    cout << "Parsing completed." << endl;
+    cout << "Code generation completed." << endl;
     return 0;
 }

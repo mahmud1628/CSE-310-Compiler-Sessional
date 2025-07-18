@@ -199,7 +199,7 @@ statement
 		  : var_declaration
 	      | expression_statement
 	      | compound_statement
-	      | FOR LPAREN expression_statement 
+	      | FOR LPAREN {symbolTable.enterScope();} expression_statement 
 		  {
 			int conditionLabel = label_count++;
 			int endLabel = label_count++;
@@ -252,6 +252,7 @@ statement
 		  }
 	      | WHILE LPAREN
 		  {
+			symbolTable.enterScope();
 			int conditionLabel = label_count++;
 			int endLabel = label_count++;
 			writeIntoCodeFile("L" + std::to_string(conditionLabel) + ":\n");

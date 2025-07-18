@@ -32,10 +32,17 @@ options {
 			writeIntoCodeFile("\tmov ax, @data\n\tmov ds, ax\n\n");
 		}
 	}
-	void writeProcEnd(const std::string procName) {
+	void writeProcEnd(const std::string procName, int paramSize) {
 		if(procName == "main")
 		{
 			writeIntoCodeFile("\tmov ah, 4ch\n\tint 21h\n");
+		}
+		else
+		{
+			if(paramSize == 0)
+				writeIntoCodeFile("\tret\n");
+			else
+				writeIntoCodeFile("\tret " + std::to_string(paramSize) + "\n");
 		}
 		writeIntoCodeFile(procName + " endp\n\n");
 	}
@@ -89,28 +96,56 @@ func_declaration : type_specifier ID LPAREN parameter_list RPAREN SEMICOLON
 		        ;
 		 
 func_definition 
-				: type_specifier {writeCodeSegment();} ID {writeProcName($ID->getText());} LPAREN {symbolTable.enterScope(); writeIntoCodeFile("\tmov bp, sp\n");} parameter_list RPAREN compound_statement 
+				: type_specifier 
 				{
-					writeIntoCodeFile("\tmov sp, bp\n");
-					writeProcEnd($ID->getText());
+					writeCodeSegment();
+				} 
+				ID 
+				{
+					writeProcName($ID->getText());
+				} 
+				LPAREN 
+				{
+					symbolTable.enterScope(); writeIntoCodeFile("\tpush bp\n\tmov bp, sp\n");
+				} 
+				pl=parameter_list 
+				{
+					int paramSize = $pl.paramNames.size();
+					for(int i = 0; i < paramSize;i++)
+					{
+						symbolTable.insert($pl.paramNames[i], "param", 4 + i * 2);
+					}
 				}
-		        | type_specifier {writeCodeSegment();} ID {writeProcName($ID->getText());} LPAREN {symbolTable.enterScope(); writeIntoCodeFile("\tmov bp, sp\n");} RPAREN compound_statement
+				RPAREN compound_statement 
 				{
-					writeIntoCodeFile("\tmov sp, bp\n");
-					writeProcEnd($ID->getText());
+					writeIntoCodeFile("\tmov sp, bp\n\tpop bp\n");
+					writeProcEnd($ID->getText(), paramSize * 2);
+				}
+		        | type_specifier {writeCodeSegment();} ID {writeProcName($ID->getText());} LPAREN {symbolTable.enterScope(); writeIntoCodeFile("\tpush bp\n\tmov bp, sp\n");} RPAREN compound_statement
+				{
+					writeIntoCodeFile("\tmov sp, bp\n\tpop bp\n");
+					writeProcEnd($ID->getText(), 0);
 				}
  		        ;				
 
 
-parameter_list  : parameter_list COMMA type_specifier ID
+parameter_list returns [std::vector<std::string> paramNames]
+				: pl=parameter_list COMMA type_specifier ID
+				{
+					$paramNames = $pl.paramNames;
+					$paramNames.push_back($ID->getText());
+				}
 		        | parameter_list COMMA type_specifier
  		        | type_specifier ID
+				{
+					$paramNames.push_back($ID->getText());
+				}
 		        | type_specifier
  		        ;
 
  		
-compound_statement : LCURL statements RCURL
- 		           | LCURL RCURL
+compound_statement : LCURL statements RCURL {symbolTable.exitScope();}
+ 		           | LCURL RCURL {symbolTable.exitScope();}
  		           ;
  		    
 var_declaration 
@@ -261,9 +296,13 @@ variable returns [std::string varName]
 			{
 				$varName = $ID->getText();
 			}
-			else
+			else if(info->getType() == "local")
 			{
 				$varName = "[bp - " + std::to_string(info->getStackOffset()) + "]";
+			}
+			else if(info->getType() == "param")
+			{
+				$varName = "[bp + " + std::to_string(info->getStackOffset()) + "]";
 			}
 		 } 		
 	     | ID LTHIRD expression RTHIRD 
@@ -277,7 +316,11 @@ variable returns [std::string varName]
 			}	
 	        ;
 			
-logic_expression : rel_expression 	
+logic_expression returns [std::string argInLE]
+				 : re=rel_expression 
+				 {
+					$argInLE = $re.argInRE;
+				 }	
 		         | rel_expression LOGICOP 
 				 {
 					int shortLabel = label_count++;
@@ -320,7 +363,11 @@ logic_expression : rel_expression
 				 }	
 		         ;
 			
-rel_expression	: simple_expression 
+rel_expression	returns [std::string argInRE]
+				: se=simple_expression 
+				{
+					$argInRE = $se.argInSE;
+				}
 		        | simple_expression RELOP {writeIntoCodeFile("\tpush ax\n");} simple_expression	
 				{
 					writeIntoCodeFile("\tpop bx\n");
@@ -334,8 +381,11 @@ rel_expression	: simple_expression
 				}
 		        ;
 				
-simple_expression 
-				  : term 
+simple_expression returns [std::string argInSE]
+				  : t=term 
+				  {
+					$argInSE = $t.argInTerm;
+				  }
 		          | simple_expression ADDOP {writeIntoCodeFile("\tpush ax\n");} term 
 				  {
 					writeIntoCodeFile("\tpop bx\n");
@@ -351,8 +401,11 @@ simple_expression
 				  }
 		          ;
 					
-term 
-	 :	unary_expression
+term returns [std::string argInTerm]
+	 :	ue=unary_expression
+	 {
+		$argInTerm = $ue.argInUE;
+	 }
      |  term MULOP {writeIntoCodeFile("\tpush ax\n");} unary_expression
 	 {
 		writeIntoCodeFile("\tpop bx\n");
@@ -375,7 +428,7 @@ term
 	 }
      ;
 
-unary_expression 
+unary_expression returns [std::string argInUE]
 				: ADDOP unary_expression  
 				{
 					if($ADDOP->getText() == "-")
@@ -384,15 +437,28 @@ unary_expression
 					}
 				}
 		         | NOT unary_expression 
-		         | factor 
+		         | f=factor 
+				 {
+					$argInUE = $f.argInFactor;
+				 }
 		         ;
 	
-factor	
+factor	returns [std::string argInFactor]
 		: v=variable 
 		{
+			$argInFactor = $v.varName;
 			writeIntoCodeFile("\tmov ax, " + $v.varName + " ; line " + std::to_string($v.start->getLine()) + "\n");
 		}
-	    | ID LPAREN argument_list RPAREN
+	    | ID LPAREN al=argument_list RPAREN
+		{
+			for(int i = $al.argNames.size() - 1; i >= 0;i--)
+			{
+				writeIntoCodeFile("\tmov ax, " + $al.argNames[i] + "\n");
+				writeIntoCodeFile("\tpush ax\n");
+			}
+			std::string funcName = $ID->getText();
+			writeIntoCodeFile("\tcall " + funcName + "\n");
+		}
 	    | LPAREN expression RPAREN
         | CONST_INT 
 		{
@@ -415,10 +481,22 @@ factor
 		}
         ;
 	
-argument_list : arguments
+argument_list returns [std::vector<std::string> argNames]
+			  : a=arguments
+			  {
+				$argNames = $a.args;
+			  }
 			  |
 			  ;
 	
-arguments : arguments COMMA logic_expression
-	      | logic_expression
+arguments returns [std::vector<std::string> args]
+		  : a=arguments COMMA le=logic_expression
+		  {
+			$args = $a.args;
+			$args.push_back($le.argInLE);
+		  }
+	      | le=logic_expression
+		  {
+			$args.push_back($le.argInLE);
+		  }
 	      ;

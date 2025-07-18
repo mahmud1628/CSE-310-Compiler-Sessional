@@ -21,6 +21,7 @@ options {
 @parser::members {
 	void writeIntoCodeFile(const std::string code) {
 		asmCodeFile << code;
+		asmCodeFile.flush();
 	}
 	void writeCodeSegment() {
 		if(codeSegmentStarted == false) {
@@ -125,12 +126,14 @@ func_definition
 					writeIntoCodeFile("L" + currentFunctions.top() + "end:\n");
 					writeIntoCodeFile("\tmov sp, bp\n\tpop bp\n");
 					writeProcEnd($ID->getText(), paramSize * 2);
+					symbolTable.exitScope();
 				}
 		        | type_specifier {writeCodeSegment();} ID {writeProcName($ID->getText());} LPAREN {symbolTable.enterScope(); writeIntoCodeFile("\tpush bp\n\tmov bp, sp\n");} RPAREN compound_statement
 				{
 					writeIntoCodeFile("L" + currentFunctions.top() + "end:\n");
 					writeIntoCodeFile("\tmov sp, bp\n\tpop bp\n");
 					writeProcEnd($ID->getText(), 0);
+					symbolTable.exitScope();
 				}
  		        ;				
 
@@ -150,8 +153,8 @@ parameter_list returns [std::vector<std::string> paramNames]
  		        ;
 
  		
-compound_statement : LCURL statements RCURL {symbolTable.exitScope();}
- 		           | LCURL RCURL {symbolTable.exitScope();}
+compound_statement : LCURL {symbolTable.enterScope();} statements RCURL {symbolTable.exitScope();}
+ 		           | LCURL {symbolTable.enterScope();} RCURL {symbolTable.exitScope();}
  		           ;
  		    
 var_declaration 
@@ -205,7 +208,7 @@ statement
 		  : var_declaration
 	      | expression_statement
 	      | compound_statement
-	      | FOR LPAREN {symbolTable.enterScope();} expression_statement 
+	      | FOR LPAREN expression_statement 
 		  {
 			int conditionLabel = label_count++;
 			int endLabel = label_count++;
@@ -258,7 +261,6 @@ statement
 		  }
 	      | WHILE LPAREN
 		  {
-			symbolTable.enterScope();
 			int conditionLabel = label_count++;
 			int endLabel = label_count++;
 			writeIntoCodeFile("L" + std::to_string(conditionLabel) + ":\n");
@@ -408,6 +410,7 @@ simple_expression returns [std::string argInSE]
 						writeIntoCodeFile("\tsub bx, ax\n");
 					}
 					writeIntoCodeFile("\tmov ax, bx\n");
+					$argInSE = "ax";
 				  }
 		          ;
 					

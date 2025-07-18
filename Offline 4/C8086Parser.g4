@@ -7,6 +7,7 @@ options {
 @parser::header {
 	#include <iostream>
 	#include <fstream>
+	#include <stack>
 	#include "C8086Lexer.h"
 	#include "2105120_SymbolTable.hpp"
 
@@ -14,6 +15,7 @@ options {
 	extern SymbolTable symbolTable;
 	extern bool codeSegmentStarted;
 	extern int label_count;
+	extern stack<std::string> currentFunctions;
 }
 
 @parser::members {
@@ -31,6 +33,7 @@ options {
 		if(procName == "main") {
 			writeIntoCodeFile("\tmov ax, @data\n\tmov ds, ax\n\n");
 		}
+		currentFunctions.push(procName);
 	}
 	void writeProcEnd(const std::string procName, int paramSize) {
 		if(procName == "main")
@@ -45,6 +48,7 @@ options {
 				writeIntoCodeFile("\tret " + std::to_string(paramSize) + "\n");
 		}
 		writeIntoCodeFile(procName + " endp\n\n");
+		currentFunctions.pop();
 	}
 
 	void writeLabel()
@@ -118,11 +122,13 @@ func_definition
 				}
 				RPAREN compound_statement 
 				{
+					writeIntoCodeFile("L" + currentFunctions.top() + "end:\n");
 					writeIntoCodeFile("\tmov sp, bp\n\tpop bp\n");
 					writeProcEnd($ID->getText(), paramSize * 2);
 				}
 		        | type_specifier {writeCodeSegment();} ID {writeProcName($ID->getText());} LPAREN {symbolTable.enterScope(); writeIntoCodeFile("\tpush bp\n\tmov bp, sp\n");} RPAREN compound_statement
 				{
+					writeIntoCodeFile("L" + currentFunctions.top() + "end:\n");
 					writeIntoCodeFile("\tmov sp, bp\n\tpop bp\n");
 					writeProcEnd($ID->getText(), 0);
 				}
@@ -283,6 +289,9 @@ statement
 			writeIntoCodeFile("\tcall print_output\n\tcall new_line\n");
 		  }
 	      | RETURN expression SEMICOLON
+		  {
+			writeIntoCodeFile("\tjmp L" + currentFunctions.top() + "end\n");
+		  }
 	      ;
 	  
 expression_statement 	: SEMICOLON			

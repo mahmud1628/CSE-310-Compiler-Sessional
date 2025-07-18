@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <stack>
 #include "antlr4-runtime.h"
 #include "C8086Lexer.h"
 #include "C8086Parser.h"
@@ -14,6 +15,7 @@ ofstream asmCodeFile;
 SymbolTable symbolTable(7, "sdbm"); // Initialize symbol table with 7 buckets and sdbm hash function
 bool codeSegmentStarted = false;
 int label_count = 0;
+stack<string> currentFunctions;
 
 int main(int argc, const char* argv[]) {
     if (argc < 2) {

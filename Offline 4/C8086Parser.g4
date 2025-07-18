@@ -510,6 +510,6 @@ arguments returns [std::vector<std::string> args]
 		  }
 	      | le=logic_expression
 		  {
-			$args.push_back($le.argInLE);
+			$args.push_back($le.argInLE); // TODO: Argument passing only works for variable now. If expression or constatnt is passed, it won't work. need to solve the issue.
 		  }
 	      ;

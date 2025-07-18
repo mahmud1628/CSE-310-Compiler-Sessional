@@ -58,8 +58,8 @@ class SymbolTable {
             currentScope = parentScope; // move to the parent scope
         }
 
-        bool insert(string name, string type,int stack_offset = -1, bool verbose = false) {
-            bool inserted = currentScope->insert(name, type,stack_offset, verbose);
+        bool insert(string name, string type,int stack_offset = -1, int size = 1, bool verbose = false) {
+            bool inserted = currentScope->insert(name, type,stack_offset,size, verbose);
             return inserted;
         }
 
@@ -160,5 +160,9 @@ class SymbolTable {
                 return currentScope->getId();
             }
             return "0"; // no current scope
+        }
+
+        int countLocalVarInCurrentScope() {
+            return currentScope->getLocalVarCount();
         }
 };

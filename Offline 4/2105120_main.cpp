@@ -16,6 +16,7 @@ SymbolTable symbolTable(7, "sdbm"); // Initialize symbol table with 7 buckets an
 bool codeSegmentStarted = false;
 int label_count = 0;
 stack<string> currentFunctions;
+int localVarCount = 0;
 
 int main(int argc, const char* argv[]) {
     if (argc < 2) {

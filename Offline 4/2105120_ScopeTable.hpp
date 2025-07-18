@@ -83,7 +83,7 @@ class ScopeTable {
             return hash % num_buckets;
         }
 
-        bool insert(string& name, string& type, int stack_offset = -1, bool verbose = false) {
+        bool insert(string& name, string& type, int stack_offset = -1, int size = 1, bool verbose = false) {
             SymbolInfo * exists = lookup(name);
             if(exists != nullptr) {
                 if(verbose) {
@@ -93,7 +93,7 @@ class ScopeTable {
             }
             int index = getBucketIndex(name);
             int position = 1;
-            SymbolInfo * new_symbol = new SymbolInfo(name, type, stack_offset);
+            SymbolInfo * new_symbol = new SymbolInfo(name, type, stack_offset, size);
             if(hash_table[index] == nullptr) {
                 hash_table[index] = new_symbol;
             } else {
@@ -206,5 +206,18 @@ class ScopeTable {
                 result += "\n";
             }
             return result;
+        }
+
+        int getLocalVarCount() {
+            int cnt = 0;
+            for(int i = 0; i < num_buckets; i++) {
+                SymbolInfo * current = hash_table[i];
+                if(current == nullptr) continue; // skip empty buckets
+                while(current != nullptr) {
+                    if(current->getType() == "local") cnt += current->getSize();
+                    current = current->getNext();
+                }
+            }
+            return cnt;
         }
 };

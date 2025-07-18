@@ -7,6 +7,7 @@ using namespace std;
 class SymbolInfo {
     string name, type;
     SymbolInfo * next;
+    int size = 1;
 
     int stack_offset;
 
@@ -18,11 +19,17 @@ class SymbolInfo {
         SymbolInfo(string name, string type, SymbolInfo * next = nullptr) : name(name), type(type), next(next) {}
         SymbolInfo(string name, string type, int stack_offset, SymbolInfo * next = nullptr) 
             : name(name), type(type), next(next), stack_offset(stack_offset) {}
+        SymbolInfo(string name, string type, int stack_offset, int size = 1, SymbolInfo * next = nullptr) 
+            : name(name), type(type), next(next), stack_offset(stack_offset), size(size) {}
 
         ~SymbolInfo() {
             if(next != nullptr) {
                 delete next;
             }
+        }
+
+        int getSize() {
+            return size;
         }
 
         int getStackOffset() const {

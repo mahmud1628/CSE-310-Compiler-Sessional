@@ -16,6 +16,7 @@ options {
 	extern bool codeSegmentStarted;
 	extern int label_count;
 	extern stack<std::string> currentFunctions;
+	extern int localVarCount;
 }
 
 @parser::members {
@@ -69,7 +70,7 @@ options {
 		writeIntoCodeFile("\t" + jmpStr + " L" + std::to_string(falseLabel) + "\n");
 	}
 
-	void declareVariable(std::string varName, int count)
+	void declareVariable(std::string varName)
 	{
 		if(symbolTable.getCurrentScopeId() == "1") // global scope
 		{
@@ -78,17 +79,24 @@ options {
 		}
 		else // local scope
 		{
+			localVarCount++;
 			writeIntoCodeFile("\tsub sp, 2\n");
-			symbolTable.insert(varName, "local", count * 2);
+			symbolTable.insert(varName, "local", localVarCount * 2);
 		}
 	}
 
-	void declareArray(std::string arrName, std::string size)
+	void declareArray(std::string arrName, int size)
 	{
 		if(symbolTable.getCurrentScopeId() == "1") // global scope
 		{
-			writeIntoCodeFile("\t" + arrName + " dw " + size + " dup (0)\n");
+			writeIntoCodeFile("\t" + arrName + " dw " + std::to_string(size) + " dup (0)\n");
 			symbolTable.insert(arrName, "global");
+		}
+		else // local scope
+		{
+			localVarCount += size;
+			writeIntoCodeFile("\tsub sp, " + std::to_string(size * 2) + "\n");
+			symbolTable.insert(arrName, "local", localVarCount * 2, size);
 		}
 	}
 }
@@ -136,6 +144,7 @@ func_definition
 					writeIntoCodeFile("L" + currentFunctions.top() + "end:\n");
 					writeIntoCodeFile("\tmov sp, bp\n\tpop bp\n");
 					writeProcEnd($ID->getText(), paramSize * 2);
+					localVarCount -= symbolTable.countLocalVarInCurrentScope();
 					symbolTable.exitScope();
 				}
 		        | type_specifier {writeCodeSegment();} ID {writeProcName($ID->getText());} LPAREN {symbolTable.enterScope(); writeIntoCodeFile("\tpush bp\n\tmov bp, sp\n");} RPAREN compound_statement
@@ -143,6 +152,7 @@ func_definition
 					writeIntoCodeFile("L" + currentFunctions.top() + "end:\n");
 					writeIntoCodeFile("\tmov sp, bp\n\tpop bp\n");
 					writeProcEnd($ID->getText(), 0);
+					localVarCount -= symbolTable.countLocalVarInCurrentScope();
 					symbolTable.exitScope();
 				}
  		        ;				
@@ -163,8 +173,16 @@ parameter_list returns [std::vector<std::string> paramNames]
  		        ;
 
  		
-compound_statement : LCURL {symbolTable.enterScope();} statements RCURL {symbolTable.exitScope();}
- 		           | LCURL {symbolTable.enterScope();} RCURL {symbolTable.exitScope();}
+compound_statement : LCURL {symbolTable.enterScope();} statements RCURL 
+					{
+						localVarCount -= symbolTable.countLocalVarInCurrentScope();
+						symbolTable.exitScope();
+					}
+ 		           | LCURL {symbolTable.enterScope();} RCURL 
+				   {
+						localVarCount -= symbolTable.countLocalVarInCurrentScope();
+						symbolTable.exitScope();
+					}
  		           ;
  		    
 var_declaration 
@@ -184,20 +202,24 @@ declaration_list returns [int count]
 				 : dl=declaration_list COMMA ID
 				 {
 					$count = $dl.count + 1;
-					declareVariable($ID->getText(), $count);
+					declareVariable($ID->getText());
 				 }
- 		         | declaration_list COMMA ID LTHIRD CONST_INT RTHIRD
+ 		         | dl=declaration_list COMMA ID LTHIRD CONST_INT RTHIRD
 				 {
-					declareArray($ID->getText(), $CONST_INT->getText());					
+					int arrSize = stoi($CONST_INT->getText());
+					$count = $dl.count + arrSize;
+					declareArray($ID->getText(), arrSize);					
 				 }
  		         | ID
 				 {
 					$count = 1;
-					declareVariable($ID->getText(), $count);
+					declareVariable($ID->getText());
 				 }
  		         | ID LTHIRD CONST_INT RTHIRD
 				 {
-					declareArray($ID->getText(), $CONST_INT->getText());
+					int arrSize = stoi($CONST_INT->getText());
+					$count = arrSize;
+					declareArray($ID->getText(), arrSize);
 				 }
  		         ;
  		  
@@ -320,14 +342,19 @@ variable returns [std::string varName]
 		 } 		
 	     | ID LTHIRD expression RTHIRD 
 		 {
+			writeIntoCodeFile("\tmov bx, 2\n");
+			writeIntoCodeFile("\tmul bx\n");
 			SymbolInfo * info = symbolTable.lookup($ID->getText());
 			if(info->getType() == "global")
 			{
 				writeIntoCodeFile("\tlea si, " + $ID->getText() + "\n");
-				writeIntoCodeFile("\tmov bx, 2\n");
-				writeIntoCodeFile("\tmul bx\n");
 				writeIntoCodeFile("\tadd si, ax\n");
 				$varName = "[si]";
+			}
+			else if(info->getType() == "local")
+			{
+				writeIntoCodeFile("\tmov di, ax\n");
+				$varName = "[bp - " + std::to_string(info->getStackOffset()) + " - di]";
 			}
 		 }
 	     ;

@@ -10,8 +10,6 @@
 
 using namespace std;
 
-const string outputFileName = "optCode.asm";
-
 struct Instruction {
     string operation;
     string firstOperand;
@@ -36,11 +34,11 @@ class Optimizer {
     void removeInstructionsAndWriteToFile(const string& fileName);
     public:
     Optimizer() {}
-    void optimize(const string& fileName);
+    void optimize(const string& fileName, const string& outputFileName);
     void printInstructions() const;
 };
 
-void Optimizer::optimize(const string& fileName) {
+void Optimizer::optimize(const string& fileName, const string& outputFileName = "optCode.asm") {
     instructions.clear();
     originalInstructions.clear();
     indicesToRemove.clear();

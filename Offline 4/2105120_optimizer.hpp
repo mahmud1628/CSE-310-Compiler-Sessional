@@ -30,8 +30,8 @@ class Optimizer {
     string toLowerCopy(string &s);
     void setIndicesToRemove();
     void handlePush(int index);
-    void handleAddToZero(int index);
-    void handleSubToZero(int index);
+    void handleAddSubToZero(int index);
+    void handleMulDivWithOne(int index);
     void removeInstructionsAndWriteToFile(const string& fileName);
     public:
     Optimizer() {}
@@ -63,11 +63,11 @@ void Optimizer::setIndicesToRemove() {
         if(operation == "push") {
             handlePush(i);
         }
-        else if(operation == "add") {
-            handleAddToZero(i);
+        else if(operation == "add" || operation == "sub") {
+            handleAddSubToZero(i);
         }
-        else if(operation == "sub") {
-            handleSubToZero(i);
+        else if(operation == "mul" || operation == "div") {
+            handleMulDivWithOne(i);
         }
 
     }
@@ -104,23 +104,32 @@ void Optimizer::handlePush(int index) {
     }
 }
 
-void Optimizer::handleAddToZero(int index) {
-    const string & firstOperand = instructions[index].firstOperand, secondOperand = instructions[index].secondOperand;
-
-    if(firstOperand == "0" || secondOperand == "0") {
-        // If either operand is zero, we can remove this instruction
+void Optimizer::handleAddSubToZero(int index) {
+    const string & secondOperand = instructions[index].secondOperand;
+    const string & operation = instructions[index].operation;
+    if(operation != "add" && operation != "sub") {
+        // If the operation is not add or sub, we don't check for zero
+        return;
+    }
+    if(secondOperand == "0") {
+        // If the second operand is zero, we can remove this instruction
         indicesToRemove.insert(index);
         return;
     }
 }
 
-void Optimizer::handleSubToZero(int index) {
+void Optimizer::handleMulDivWithOne(int index) {
     const string & secondOperand = instructions[index].secondOperand;
+    const string & operation = instructions[index].operation;
 
-    if(secondOperand == "0") {
-        // If both operands are zero, we can remove this instruction
-        indicesToRemove.insert(index);
+    if(operation != "mul" && operation != "div") {
+        // If the operation is not mul or div, we don't check for one
         return;
+    }
+    if(secondOperand == "1") {
+        // If the second operand is one, we can remove this instruction
+        indicesToRemove.insert(index);
+        return; 
     }
 }
 

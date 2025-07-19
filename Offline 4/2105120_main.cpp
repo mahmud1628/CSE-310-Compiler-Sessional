@@ -6,6 +6,7 @@
 #include "C8086Lexer.h"
 #include "C8086Parser.h"
 #include "2105120_SymbolTable.hpp"
+#include "2105120_optimizer.hpp"
 
 using namespace antlr4;
 using namespace std;
@@ -77,6 +78,13 @@ int main(int argc, const char* argv[]) {
     inputFile.close();
     lexLogFile.close();
     asmCodeFile.close();
-    cout << "Code generation completed." << endl;
+    cout << "Code generation completed. Assembly code written to: " << asmCodeFileName << endl;
+
+    // Run optimizer
+    Optimizer optimizer;
+    string optFileName = outputDirectory + "optCode.asm";
+    cout << "Optimizing assembly code..." << endl;
+    optimizer.optimize(asmCodeFileName, optFileName);
+    cout << "Optimization completed. Optimized code written to: " << optFileName << endl;
     return 0;
 }

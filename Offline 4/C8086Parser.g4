@@ -186,10 +186,7 @@ compound_statement : LCURL {symbolTable.enterScope();} statements RCURL
  		           ;
  		    
 var_declaration 
-				: type_specifier dl=declaration_list SEMICOLON
-				{
-
-				}
+				: type_specifier declaration_list SEMICOLON
                 ;
 
  		 
@@ -198,27 +195,23 @@ type_specifier : INT
  		       | VOID
  		       ;
  		
-declaration_list returns [int count]
-				 : dl=declaration_list COMMA ID
+declaration_list
+				 : declaration_list COMMA ID
 				 {
-					$count = $dl.count + 1;
 					declareVariable($ID->getText());
 				 }
- 		         | dl=declaration_list COMMA ID LTHIRD CONST_INT RTHIRD
+ 		         | declaration_list COMMA ID LTHIRD CONST_INT RTHIRD
 				 {
 					int arrSize = stoi($CONST_INT->getText());
-					$count = $dl.count + arrSize;
 					declareArray($ID->getText(), arrSize);					
 				 }
  		         | ID
 				 {
-					$count = 1;
 					declareVariable($ID->getText());
 				 }
  		         | ID LTHIRD CONST_INT RTHIRD
 				 {
 					int arrSize = stoi($CONST_INT->getText());
-					$count = arrSize;
 					declareArray($ID->getText(), arrSize);
 				 }
  		         ;

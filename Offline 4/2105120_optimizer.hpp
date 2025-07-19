@@ -30,6 +30,8 @@ class Optimizer {
     string toLowerCopy(string &s);
     void setIndicesToRemove();
     void handlePush(int index);
+    void handleAddToZero(int index);
+    void handleSubToZero(int index);
     void removeInstructionsAndWriteToFile(const string& fileName);
     public:
     Optimizer() {}
@@ -60,6 +62,12 @@ void Optimizer::setIndicesToRemove() {
 
         if(operation == "push") {
             handlePush(i);
+        }
+        else if(operation == "add") {
+            handleAddToZero(i);
+        }
+        else if(operation == "sub") {
+            handleSubToZero(i);
         }
 
     }
@@ -93,6 +101,26 @@ void Optimizer::handlePush(int index) {
         // If the first operand of push and pop are the same, we can remove both of them
         indicesToRemove.insert(index);
         indicesToRemove.insert(nextIndex);
+    }
+}
+
+void Optimizer::handleAddToZero(int index) {
+    const string & firstOperand = instructions[index].firstOperand, secondOperand = instructions[index].secondOperand;
+
+    if(firstOperand == "0" || secondOperand == "0") {
+        // If either operand is zero, we can remove this instruction
+        indicesToRemove.insert(index);
+        return;
+    }
+}
+
+void Optimizer::handleSubToZero(int index) {
+    const string & secondOperand = instructions[index].secondOperand;
+
+    if(secondOperand == "0") {
+        // If both operands are zero, we can remove this instruction
+        indicesToRemove.insert(index);
+        return;
     }
 }
 

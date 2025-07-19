@@ -29,9 +29,10 @@ class Optimizer {
     void trim(string &s);
     string toLowerCopy(string &s);
     void setIndicesToRemove();
-    void handlePush(int index);
+    void handleRedundantPushPop(int index);
     void handleAddSubToZero(int index);
     void handleMulDivWithOne(int index);
+    void handleRedundantMov(int index);
     void removeInstructionsAndWriteToFile(const string& fileName);
     public:
     Optimizer() {}
@@ -61,7 +62,7 @@ void Optimizer::setIndicesToRemove() {
         }
 
         if(operation == "push") {
-            handlePush(i);
+            handleRedundantPushPop(i);
         }
         else if(operation == "add" || operation == "sub") {
             handleAddSubToZero(i);
@@ -69,30 +70,25 @@ void Optimizer::setIndicesToRemove() {
         else if(operation == "mul" || operation == "div") {
             handleMulDivWithOne(i);
         }
+        else if(operation == "mov") {
+            handleRedundantMov(i);
+        }
 
     }
 }
 
-void Optimizer::handlePush(int index) {
-    if(index + 1 >= instructions.size()) {
-        // If this is the last instruction, we can't do anything
-        return;
-    }
+void Optimizer::handleRedundantPushPop(int index) {
+    if(index + 1 >= instructions.size()) return; // end of instructions
+
     int nextIndex = index + 1;
     auto& nextInstr = instructions[nextIndex];
-    while(nextInstr.operation == "empty" || nextInstr.operation == "comment") {
+    while(nextInstr.operation == "empty" || nextInstr.operation == "comment") { // skip empty lines and comments
         nextIndex++;
-        if(nextIndex >= instructions.size()) {
-            // If we reach the end of the instructions, we can't do anything
-            return;
-        }
+        if(nextIndex >= instructions.size()) return; // end of instructions
         nextInstr = instructions[nextIndex];
     }
     const string& nextOperation = nextInstr.operation;
-    if(nextOperation != "pop") {
-        // If the next instruction is not a pop, we don't check for the operand
-        return;
-    }
+    if(nextOperation != "pop") return; // if next is not pop, no issue.
 
     string currentFirstOperand = instructions[index].firstOperand;
     string nextFirstOperand = nextInstr.firstOperand;
@@ -107,30 +103,43 @@ void Optimizer::handlePush(int index) {
 void Optimizer::handleAddSubToZero(int index) {
     const string & secondOperand = instructions[index].secondOperand;
     const string & operation = instructions[index].operation;
-    if(operation != "add" && operation != "sub") {
-        // If the operation is not add or sub, we don't check for zero
-        return;
-    }
-    if(secondOperand == "0") {
-        // If the second operand is zero, we can remove this instruction
-        indicesToRemove.insert(index);
-        return;
-    }
+
+    if(operation != "add" && operation != "sub") return;
+    if(secondOperand == "0") indicesToRemove.insert(index); // second operand is 0, no effect for add or sub, remove this instruction
 }
 
 void Optimizer::handleMulDivWithOne(int index) {
     const string & secondOperand = instructions[index].secondOperand;
     const string & operation = instructions[index].operation;
 
-    if(operation != "mul" && operation != "div") {
-        // If the operation is not mul or div, we don't check for one
+    if(operation != "mul" && operation != "div") return;
+    if(secondOperand == "1") indicesToRemove.insert(index); // second operand is 1,no effect for mul or div. remove this instruction
+}
+
+void Optimizer::handleRedundantMov(int index) {
+    const string & operation = instructions[index].operation;
+    if(operation != "mov") return;
+    const string & firstOperand = instructions[index].firstOperand, secondOperand = instructions[index].secondOperand;
+    if(firstOperand == secondOperand) {
+        // If the first and second operands are the same, we can remove this instruction
+        indicesToRemove.insert(index);
         return;
     }
-    if(secondOperand == "1") {
-        // If the second operand is one, we can remove this instruction
-        indicesToRemove.insert(index);
-        return; 
+    // check with next instruction
+    if(index + 1 >= instructions.size()) return; // end of instructions
+
+    int nextIndex = index + 1;
+    auto& nextInstr = instructions[nextIndex];
+    while(nextInstr.operation == "empty" || nextInstr.operation == "comment") { // skip empty lines and comments
+        nextIndex++;
+        if(nextIndex >= instructions.size()) return; // end of instructions
+        nextInstr = instructions[nextIndex];
     }
+
+    const string& nextOperation = nextInstr.operation;
+    if(nextOperation != "mov") return; // if next is not mov, no possibility of redundancy
+    string & nextFirstOperand = nextInstr.firstOperand, nextSecondOperand = nextInstr.secondOperand;
+    if(firstOperand == nextSecondOperand && secondOperand == nextFirstOperand) indicesToRemove.insert(nextIndex);
 }
 
 

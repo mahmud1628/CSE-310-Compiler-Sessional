@@ -17,6 +17,7 @@ options {
 	extern int label_count;
 	extern stack<std::string> currentFunctions;
 	extern int localVarCount;
+	extern bool isReturnPresent;
 }
 
 @parser::members {
@@ -66,6 +67,7 @@ options {
 		else if(optr == "==") jmpStr = "jne";
 		else if(optr == "<") jmpStr = "jge";
 		else if(optr == ">") jmpStr = "jle";
+		else if(optr == ">=") jmpStr = "jnge";
 
 		writeIntoCodeFile("\t" + jmpStr + " L" + std::to_string(falseLabel) + "\n");
 	}
@@ -141,7 +143,8 @@ func_definition
 				}
 				RPAREN compound_statement 
 				{
-					writeIntoCodeFile("L" + currentFunctions.top() + "end:\n");
+					if(isReturnPresent == true) writeIntoCodeFile("L" + currentFunctions.top() + "end:\n");
+					isReturnPresent = false;
 					writeIntoCodeFile("\tmov sp, bp\n\tpop bp\n");
 					writeProcEnd($ID->getText(), paramSize * 2);
 					localVarCount -= symbolTable.countLocalVarInCurrentScope();
@@ -149,7 +152,8 @@ func_definition
 				}
 		        | type_specifier {writeCodeSegment();} ID {writeProcName($ID->getText());} LPAREN {symbolTable.enterScope(); writeIntoCodeFile("\tpush bp\n\tmov bp, sp\n");} RPAREN compound_statement
 				{
-					writeIntoCodeFile("L" + currentFunctions.top() + "end:\n");
+					if(isReturnPresent == true) writeIntoCodeFile("L" + currentFunctions.top() + "end:\n");
+					isReturnPresent = false;
 					writeIntoCodeFile("\tmov sp, bp\n\tpop bp\n");
 					writeProcEnd($ID->getText(), 0);
 					localVarCount -= symbolTable.countLocalVarInCurrentScope();
@@ -216,11 +220,11 @@ declaration_list
 				 }
  		         ;
  		  
-statements : statement
-	       | statements statement
+statements : s=statement[-1]
+	       | statements s=statement[-1]
 	       ;
 	   
-statement 
+statement [int endLabelInherited]
 		  : var_declaration
 	      | expression_statement
 	      | compound_statement
@@ -244,36 +248,40 @@ statement
 			writeIntoCodeFile("\tjmp L" + std::to_string(conditionLabel) + "\n");
 			writeLabel(std::to_string(statementLabel));
 		  } 
-		  RPAREN statement
+		  RPAREN s=statement[-1]
 		  {
 			writeIntoCodeFile("\tjmp L" + std::to_string(incrementLabel) + "\n");
 			writeLabel(std::to_string(endLabel));
 		  }
 	      | IF LPAREN expression RPAREN
 		  {
-			int falseLabel = label_count++;
-			writeIntoCodeFile("\tcmp ax, 1\n");
-			writeIntoCodeFile("\tjne L" + std::to_string(falseLabel) + "\n");
+			int falseLabel;
+			if($endLabelInherited >= 0) falseLabel = $endLabelInherited;
+			else falseLabel = label_count++;
+			writeIntoCodeFile("\tcmp ax, 0\n");
+			writeIntoCodeFile("\tje L" + std::to_string(falseLabel) + "\n");
 		  }
-		  statement
+		  s=statement[falseLabel]
 		  {
-			writeLabel(std::to_string(falseLabel)); // use the same falseLabel here
+			if($endLabelInherited < 0) writeLabel(std::to_string(falseLabel)); // use the same falseLabel here
 		  }
 		  | IF LPAREN expression RPAREN
 		  {
 			int falseLabel = label_count++;
-			int endLabel = label_count++;
-			writeIntoCodeFile("\tcmp ax, 1\n");
-			writeIntoCodeFile("\tjne L" + std::to_string(falseLabel) + "\n");
+			int endLabel;
+			if($endLabelInherited >= 0) endLabel = $endLabelInherited;
+			else endLabel = label_count++;
+			writeIntoCodeFile("\tcmp ax, 0\n");
+			writeIntoCodeFile("\tje L" + std::to_string(falseLabel) + "\n");
 		  }
-		  statement
+		  s=statement[-1]
 		  {
 			writeIntoCodeFile("\tjmp L" + std::to_string(endLabel) + "\n");
 			writeLabel(std::to_string(falseLabel));
 		  }
-		  ELSE statement
+		  ELSE s=statement[endLabel]
 		  {
-			writeLabel(std::to_string(endLabel));
+			if($endLabelInherited < 0) writeLabel(std::to_string(endLabel));
 		  }
 	      | WHILE LPAREN
 		  {
@@ -286,7 +294,7 @@ statement
 			writeIntoCodeFile("\tcmp ax, 0\n");
 			writeIntoCodeFile("\tje L" + std::to_string(endLabel) + "\n");
 		  } 
-		  RPAREN statement
+		  RPAREN s=statement[-1]
 		  {
 			writeIntoCodeFile("\tjmp L" + std::to_string(conditionLabel) + "\n");
 			writeLabel(std::to_string(endLabel));
@@ -308,6 +316,7 @@ statement
 		  }
 	      | RETURN expression SEMICOLON
 		  {
+			isReturnPresent = true;
 			writeIntoCodeFile("\tjmp L" + currentFunctions.top() + "end\n");
 		  }
 	      ;

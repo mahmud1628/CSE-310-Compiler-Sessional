@@ -18,6 +18,7 @@ bool codeSegmentStarted = false;
 int label_count = 0;
 stack<string> currentFunctions;
 int localVarCount = 0;
+bool isReturnPresent = false;
 
 int main(int argc, const char* argv[]) {
     if (argc < 2) {

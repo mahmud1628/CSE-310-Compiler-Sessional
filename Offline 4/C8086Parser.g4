@@ -127,6 +127,7 @@ func_definition
 				} 
 				ID 
 				{
+					writeIntoCodeFile("; definition of function " + $ID->getText() + " started, line no " + std::to_string($ID->getLine()) + "\n");
 					writeProcName($ID->getText());
 				} 
 				LPAREN 
@@ -150,7 +151,16 @@ func_definition
 					localVarCount -= symbolTable.countLocalVarInCurrentScope();
 					symbolTable.exitScope();
 				}
-		        | type_specifier {writeCodeSegment();} ID {writeProcName($ID->getText());} LPAREN {symbolTable.enterScope(); writeIntoCodeFile("\tpush bp\n\tmov bp, sp\n");} RPAREN compound_statement
+		        | type_specifier 
+				{
+					writeCodeSegment();
+				} 
+				ID 
+				{
+					writeIntoCodeFile("; definition of function " + $ID->getText() + " started, line no " + std::to_string($ID->getLine()) + "\n");
+					writeProcName($ID->getText());
+				} 
+				LPAREN {symbolTable.enterScope(); writeIntoCodeFile("\tpush bp\n\tmov bp, sp\n");} RPAREN compound_statement
 				{
 					if(isReturnPresent == true) writeIntoCodeFile("L" + currentFunctions.top() + "end:\n");
 					isReturnPresent = false;
@@ -190,7 +200,10 @@ compound_statement : LCURL {symbolTable.enterScope();} statements RCURL
  		           ;
  		    
 var_declaration 
-				: type_specifier declaration_list SEMICOLON
+				: ts=type_specifier 
+				{
+					writeIntoCodeFile("; variable declaration of line " + std::to_string($ts.start->getLine()) + "\n");
+				} declaration_list SEMICOLON
                 ;
 
  		 
@@ -228,7 +241,10 @@ statement [int endLabelInherited]
 		  : var_declaration
 	      | expression_statement
 	      | compound_statement
-	      | FOR LPAREN expression_statement 
+	      | FOR
+		  {
+			writeIntoCodeFile("; for loop in line no " + std::to_string($FOR->getLine()) + "\n");
+		  } LPAREN expression_statement 
 		  {
 			int conditionLabel = label_count++;
 			int endLabel = label_count++;
@@ -239,51 +255,63 @@ statement [int endLabelInherited]
 		  expression_statement
 		  {
 			writeIntoCodeFile("\tcmp ax, 0\n");
-			writeIntoCodeFile("\tje L" + std::to_string(endLabel) + "\n");
-			writeIntoCodeFile("\tjne L" + std::to_string(statementLabel) + "\n");
+			writeIntoCodeFile("\tje L" + std::to_string(endLabel) + " ; jump to end\n");
+			writeIntoCodeFile("\tjne L" + std::to_string(statementLabel) + " ; jump to statement execution\n");
 			writeLabel(std::to_string(incrementLabel));
 		  } 
 		  expression
 		  {
-			writeIntoCodeFile("\tjmp L" + std::to_string(conditionLabel) + "\n");
+			writeIntoCodeFile("\tjmp L" + std::to_string(conditionLabel) + " ; jump to condition checking\n");
 			writeLabel(std::to_string(statementLabel));
 		  } 
 		  RPAREN s=statement[-1]
 		  {
-			writeIntoCodeFile("\tjmp L" + std::to_string(incrementLabel) + "\n");
+			writeIntoCodeFile("\tjmp L" + std::to_string(incrementLabel) + " ; jump to increment/decrement statement\n");
 			writeLabel(std::to_string(endLabel));
 		  }
-	      | IF LPAREN expression RPAREN
+	      | IF
+		  {
+			writeIntoCodeFile("; if statement in line no " + std::to_string($IF->getLine()) + "\n");
+		  } LPAREN expression RPAREN
 		  {
 			int falseLabel;
 			if($endLabelInherited >= 0) falseLabel = $endLabelInherited;
 			else falseLabel = label_count++;
 			writeIntoCodeFile("\tcmp ax, 0\n");
-			writeIntoCodeFile("\tje L" + std::to_string(falseLabel) + "\n");
+			writeIntoCodeFile("\tje L" + std::to_string(falseLabel) + " ; jump to false label\n");
 		  }
 		  s=statement[falseLabel]
 		  {
 			if($endLabelInherited < 0) writeLabel(std::to_string(falseLabel)); // use the same falseLabel here
 		  }
-		  | IF LPAREN expression RPAREN
+		  | IF 
+		  {
+			writeIntoCodeFile("; if statement in line no " + std::to_string($IF->getLine()) + "\n");			
+		  } LPAREN expression RPAREN
 		  {
 			int falseLabel = label_count++;
 			int endLabel;
 			if($endLabelInherited >= 0) endLabel = $endLabelInherited;
 			else endLabel = label_count++;
 			writeIntoCodeFile("\tcmp ax, 0\n");
-			writeIntoCodeFile("\tje L" + std::to_string(falseLabel) + "\n");
+			writeIntoCodeFile("\tje L" + std::to_string(falseLabel) + " ; jump to false label\n");
 		  }
 		  s=statement[-1]
 		  {
-			writeIntoCodeFile("\tjmp L" + std::to_string(endLabel) + "\n");
+			writeIntoCodeFile("\tjmp L" + std::to_string(endLabel) + " ; jump to end\n");
 			writeLabel(std::to_string(falseLabel));
 		  }
-		  ELSE s=statement[endLabel]
+		  ELSE
+		  {
+			writeIntoCodeFile("; else statement in line no " + std::to_string($ELSE->getLine()) + "\n");
+		  } s=statement[endLabel]
 		  {
 			if($endLabelInherited < 0) writeLabel(std::to_string(endLabel));
 		  }
-	      | WHILE LPAREN
+	      | WHILE 
+		  {
+			writeIntoCodeFile("; while loop in line no " + std::to_string($WHILE->getLine()) + "\n");
+		  } LPAREN
 		  {
 			int conditionLabel = label_count++;
 			int endLabel = label_count++;
@@ -292,16 +320,18 @@ statement [int endLabelInherited]
 		  expression
 		  {
 			writeIntoCodeFile("\tcmp ax, 0\n");
-			writeIntoCodeFile("\tje L" + std::to_string(endLabel) + "\n");
+			writeIntoCodeFile("\tje L" + std::to_string(endLabel) + " ; jump to end\n");
 		  } 
 		  RPAREN s=statement[-1]
 		  {
-			writeIntoCodeFile("\tjmp L" + std::to_string(conditionLabel) + "\n");
+			writeIntoCodeFile("\tjmp L" + std::to_string(conditionLabel) + " ; jump to condition checking\n");
 			writeLabel(std::to_string(endLabel));
 		  }
-	      | PRINTLN LPAREN ID RPAREN SEMICOLON
+	      | PRINTLN 
 		  {
-			writeIntoCodeFile("\t; line " + std::to_string($ID->getLine()) + "\n");
+			writeIntoCodeFile("; print statement in line no " + std::to_string($PRINTLN->getLine()) + "\n");
+		  } LPAREN ID RPAREN SEMICOLON
+		  {
 			SymbolInfo * info = symbolTable.lookup($ID->getText());
 			if(info->getType() == "global")
 			{
@@ -314,7 +344,10 @@ statement [int endLabelInherited]
 			}
 			writeIntoCodeFile("\tcall print_output\n\tcall new_line\n");
 		  }
-	      | RETURN expression SEMICOLON
+	      | RETURN 
+		  {
+			writeIntoCodeFile("; return statement in line no " + std::to_string($RETURN->getLine()) + "\n");
+		  } expression SEMICOLON
 		  {
 			isReturnPresent = true;
 			writeIntoCodeFile("\tjmp L" + currentFunctions.top() + "end\n");
@@ -365,7 +398,7 @@ variable returns [std::string varName]
  			: logic_expression	
 	        | v=variable ASSIGNOP logic_expression 
 			{
-				writeIntoCodeFile("\tmov " + $v.varName + ", ax\n");
+				writeIntoCodeFile("\tmov " + $v.varName + ", ax ; assignment operation of line " + std::to_string($ASSIGNOP->getLine()) + "\n");
 			}	
 	        ;
 			
@@ -380,12 +413,12 @@ logic_expression
 					if(optr == "||")
 					{
 						writeIntoCodeFile("\tcmp ax, 0\n");
-						writeIntoCodeFile("\tjne L" + std::to_string(shortLabel) + "\n");
+						writeIntoCodeFile("\tjne L" + std::to_string(shortLabel) + " ; jump to true label\n");
 					}
 					else if(optr == "&&")
 					{
 						writeIntoCodeFile("\tcmp ax, 0\n");
-						writeIntoCodeFile("\tje L" + std::to_string(shortLabel) + "\n");
+						writeIntoCodeFile("\tje L" + std::to_string(shortLabel) + " ; jump to false label\n");
 					}
 				 } 
 				 rel_expression 
@@ -393,9 +426,9 @@ logic_expression
 					if(optr == "||") 
 					{
 						writeIntoCodeFile("\tcmp ax, 0\n");
-						writeIntoCodeFile("\tjne L" + std::to_string(shortLabel) + "\n");
+						writeIntoCodeFile("\tjne L" + std::to_string(shortLabel) + " ; jump to true label\n");
 						writeIntoCodeFile("\tmov ax, 0\n");
-						writeIntoCodeFile("\tjmp L" + std::to_string(endLabel) + "\n");
+						writeIntoCodeFile("\tjmp L" + std::to_string(endLabel) + " ; jump to end\n");
 						writeLabel(std::to_string(shortLabel));
 						writeIntoCodeFile("\tmov ax, 1\n");
 						writeLabel(std::to_string(endLabel));
@@ -403,9 +436,9 @@ logic_expression
 					else if(optr == "&&") 
 					{
 						writeIntoCodeFile("\tcmp ax, 0\n");
-						writeIntoCodeFile("\tje L" + std::to_string(shortLabel) + "\n");
+						writeIntoCodeFile("\tje L" + std::to_string(shortLabel) + " ; jump to false label\n");
 						writeIntoCodeFile("\tmov ax, 1\n");
-						writeIntoCodeFile("\tjmp L" + std::to_string(endLabel) + "\n");
+						writeIntoCodeFile("\tjmp L" + std::to_string(endLabel) + " ; jump to end\n");
 						writeLabel(std::to_string(shortLabel));
 						writeIntoCodeFile("\tmov ax, 0\n");
 						writeLabel(std::to_string(endLabel));
@@ -422,10 +455,10 @@ rel_expression
 					int falseLabel = label_count++;
 					int endLabel = label_count++;
 					writeJumpConditionByRelop($RELOP->getText(), falseLabel);
-					writeIntoCodeFile("\tmov ax, 1\n");
+					writeIntoCodeFile("\tmov ax, 1 ; result of relational operation true\n");
 					writeIntoCodeFile("\tjmp L" + std::to_string(endLabel) + "\n");
 					writeLabel(std::to_string(falseLabel));
-					writeIntoCodeFile("\tmov ax, 0\n");
+					writeIntoCodeFile("\tmov ax, 0 ; result of relational operation false\n");
 					writeLabel(std::to_string(endLabel));
 				}
 		        ;
@@ -437,11 +470,11 @@ simple_expression
 					writeIntoCodeFile("\tpop bx\n");
 					if($ADDOP->getText() == "+")
 					{
-						writeIntoCodeFile("\tadd bx, ax\n");
+						writeIntoCodeFile("\tadd bx, ax ; addition operation of line " + std::to_string($ADDOP->getLine()) + "\n");
 					}
 					else 
 					{
-						writeIntoCodeFile("\tsub bx, ax\n");
+						writeIntoCodeFile("\tsub bx, ax ; subtraction operation of line " + std::to_string($ADDOP->getLine()) + "\n");
 					}
 					writeIntoCodeFile("\tmov ax, bx\n");
 				  }
@@ -486,7 +519,7 @@ unary_expression
 factor
 		: v=variable 
 		{
-			writeIntoCodeFile("\tmov ax, " + $v.varName + " ; line " + std::to_string($v.start->getLine()) + "\n");
+			writeIntoCodeFile("\tmov ax, " + $v.varName + "; load variable of line " + std::to_string($v.start->getLine()) + "\n");
 		}
 	    | ID LPAREN argument_list RPAREN
 		{
@@ -496,19 +529,19 @@ factor
 	    | LPAREN expression RPAREN
         | CONST_INT 
 		{
-			writeIntoCodeFile("\tmov ax, " + $CONST_INT->getText() + " ; line " + std::to_string($CONST_INT->getLine()) + "\n");
+			writeIntoCodeFile("\tmov ax, " + $CONST_INT->getText() + "; integer constant of line " + std::to_string($CONST_INT->getLine()) + " loaded to ax\n");
 		}
         | CONST_FLOAT
         | v=variable INCOP 
 		{
-			writeIntoCodeFile("\tmov ax, " + $v.varName + " ; line " + std::to_string($v.start->getLine()) + "\n");
+			writeIntoCodeFile("\tmov ax, " + $v.varName + "\n");
 			writeIntoCodeFile("\tinc ax\n");
 			writeIntoCodeFile("\tmov " + $v.varName + ", ax\n");
 			writeIntoCodeFile("\tdec ax\n");
 		}
         | v=variable DECOP
 		{
-			writeIntoCodeFile("\tmov ax, " + $v.varName + " ; line " + std::to_string($v.start->getLine()) + "\n");
+			writeIntoCodeFile("\tmov ax, " + $v.varName + "\n");
 			writeIntoCodeFile("\tdec ax\n");
 			writeIntoCodeFile("\tmov " + $v.varName + ", ax\n");	
 			writeIntoCodeFile("\tinc ax\n");		

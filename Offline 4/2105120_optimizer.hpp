@@ -192,7 +192,7 @@ void Optimizer::loadInstructions(const string& fileName) {
         // Remove comments
         string noComment = line.substr(0, line.find(';'));
         trim(noComment);
-        if (noComment.empty()) {
+        if (noComment.empty() && inCode) {
             instructions.emplace_back("comment", "comment", "comment");
             continue;
         }

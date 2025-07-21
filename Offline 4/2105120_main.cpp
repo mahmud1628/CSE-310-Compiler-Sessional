@@ -83,7 +83,7 @@ int main(int argc, const char* argv[]) {
 
     // Run optimizer
     Optimizer optimizer;
-    string optFileName = outputDirectory + "optCode.asm";
+    string optFileName = outputDirectory + "optimized_code.asm";
     cout << "Optimizing assembly code..." << endl;
     optimizer.optimize(asmCodeFileName, optFileName);
     cout << "Optimization completed. Optimized code written to: " << optFileName << endl;
